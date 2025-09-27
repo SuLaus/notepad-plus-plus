@@ -1264,6 +1264,53 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 			break;
 		}
 
+		//-- WM_MBUTTONDOWN-Notification sent from ScintillaEditView.cpp scintillaNew_Proc(),
+		//   where original WM_MBUTTONDOWN event is catched when pressed within an edit-view window.
+		//   scintillaNew_Proc() sends WM_MBUTTONDOWN-Notification with WM_NOTIFY-Message to Notepad_plus::runProc()
+		//   where the function Notepad_plus::notify() is called to finally handle the notification.
+		// case WM_MBUTTONUP :
+		case WM_MBUTTONDOWN:
+		{
+			//--FLS: xMButtonCopyPaste: Middle-Mouse-Button shall insert the selected text at the location,
+			//      where the Middle-Mouse-Button is pressed!
+			// 1.) Get selected text.
+			size_t selectionStart = _pEditView->execute(SCI_GETSELECTIONSTART);
+			size_t selectionEnd = _pEditView->execute(SCI_GETSELECTIONEND);
+			size_t caretPosition = _pEditView->execute(SCI_GETCURRENTPOS);    // just for info, ToDo: delete lateron.
+			long selLength = static_cast<long>(selectionEnd) - static_cast<long>(selectionStart);
+			if (selLength > 0) {
+				//-- getGenericText returns characters between Start and End plus a leading 0. Therefore, buffer needs to be greater!
+				long bufLength = selLength + 1;
+				TCHAR *textBuf = new TCHAR[bufLength];
+				_pEditView->getGenericText(textBuf, bufLength, selectionStart, selectionEnd);
+				// 2.) Move caret to position where middle-mouse-button was clicked.
+				// If necessary switch to other document of view: pScint is view of Middle-Mouse-Button pressed and _pEditView is current view.
+				ScintillaEditView *pScint = (ScintillaEditView *)notification->nmhdr.hwndFrom;
+				ScintillaEditView *pCurrentEditView = _pEditView;
+				if (pScint != pCurrentEditView) {
+					int viewToGo = otherView();
+					switchEditViewTo(viewToGo);
+				}
+				//-- Sets the caret to the position where the middle mouse button was pressed.
+				::SendMessage(_pEditView->getHSelf(), WM_LBUTTONDOWN, 0, notification->nmhdr.idFrom);
+				::SendMessage(_pEditView->getHSelf(), WM_LBUTTONUP, 0, notification->nmhdr.idFrom);
+				// 3.a) Insert Text
+				_pEditView->execute(SCI_BEGINUNDOACTION);
+				caretPosition = _pEditView->execute(SCI_GETCURRENTPOS);
+				_pEditView->insertGenericTextFrom(caretPosition, textBuf);
+				// 3.b) Move caret to end of inserted text (
+				caretPosition = _pEditView->execute(SCI_GETCURRENTPOS);
+				//- Use one of the following commands to a.) select inserted text or b.) only set caret to the end of inserted text:
+				//_pEditView->execute(SCI_SETCURRENTPOS, caretPosition+selLength); //selects the inserted text and sets the caret at the end of inserted text.
+				_pEditView->execute(SCI_GOTOPOS, caretPosition + selLength);    // only sets the caret at the end of inserted text.
+				_pEditView->execute(SCI_ENDUNDOACTION);
+				// 4.) Delete allocated text buffer.
+				delete[] textBuf;
+			}               //-- if ( selLength > 0)
+			return TRUE;    //--FLS: ToDo: Check, if to return TRUE or only break (=return FALSE)!!!
+			break;
+		}
+
 		default:
 			break;
 

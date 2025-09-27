@@ -686,6 +686,26 @@ LRESULT ScintillaEditView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM wPa
 			break;
 		}
 
+		//--FLS: xMButtonCopyPaste
+		//-- WM_MBUTTONDOWN-Notification sent from ScintillaEditView.cpp scintillaNew_Proc(),
+		//   where original WM_MBUTTONDOWN event is catched when pressed within an edit-view window.
+		//   scintillaNew_Proc() sends WM_MBUTTONDOWN-Notification with WM_NOTIFY-Message to Notepad_plus::runProc()
+		//   where the function Notepad_plus::notify() is called to finally handle the notification.
+		case WM_MBUTTONDOWN:    //
+		{
+			//--FLS: Pass window-handle, which catched the WM_MBUTTONUP (mainView or subView) to Notepad_plus::
+			//      Therefore, the WM_NOTIFY with nmhdr is necessary.
+			ScintillaEditView *pScint = (ScintillaEditView *)(::GetWindowLongPtr(hwnd, GWLP_USERDATA));
+			NMHDR              nmhdr;
+			nmhdr.hwndFrom = (HWND)pScint;
+			nmhdr.code     = Message;    // WM_MBUTTONDOWN;
+			nmhdr.idFrom   = lParam;
+			//--FLS: Forward key to Notepad_plus using the notification path!!
+			::SendMessage(_hParent, WM_NOTIFY, wParam, reinterpret_cast<LPARAM>(&nmhdr));
+			return TRUE;
+			break;
+		}
+		
 		case WM_RBUTTONDOWN:
 		{
 			bool rightClickKeepsSelection = ((NppParameters::getInstance()).getSVP())._rightClickKeepsSelection;
@@ -696,7 +716,7 @@ LRESULT ScintillaEditView::scintillaNew_Proc(HWND hwnd, UINT Message, WPARAM wPa
 				if (clickX >= marginX)
 				{
 					// if right-click in the editing area (not the margins!),
-					// don't let this go to Scintilla because it will 
+					// don't let this go to Scintilla because it will
 					// move the caret to the right-clicked location,
 					// cancelling any selection made by the user
 					return TRUE;
