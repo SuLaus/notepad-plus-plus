@@ -497,6 +497,13 @@
     //#define IDC_KEY_END                        (IDCMD+7)
     //#define IDC_KEY_SELECT_2_HOME            (IDCMD+8)
     //#define IDC_KEY_SELECT_2_END            (IDCMD+9)
+	//--FLS: CtrlTabF6: IDC_PREV_DOC_NOLIST and IDC_NEXT_DOC_NOLIST introduced to have Ctrl-Tab for TaskList (document switcher list)
+	//      and Ctrl-F6 for a direct document switching without the list menu.
+	//      Attention: IDs are also defined in menuCmdID.h
+	#define IDC_PREV_DOC_NOLIST				(IDCMD+16)
+	#define IDC_NEXT_DOC_NOLIST				(IDCMD+17)
+	//--FLS: CtrlTabF4: Ctrl-VK_F4 and Ctrl-W for IDM_FILE_CLOSE_2
+	#define IDM_FILE_CLOSE_2				(IDCMD+18)
 
 	#define IDC_NEXT_TAB                   IDC_NEXT_DOC
 	#define IDC_PREV_TAB                   IDC_PREV_DOC
