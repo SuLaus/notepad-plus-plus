@@ -3794,9 +3794,19 @@ void Notepad_plus::command(int id)
 			break;
 		}
 
+		//--FLS: CtrlTabF6: Case IDC_PREV_DOC_NOLIST and IDC_NEXT_DOC_NOLIST introduced
+		//      to have Ctrl-Tab for TaskList (document switcher list)
+		//      and Ctrl-F6 for a direct document switching without the list menu.
+        case IDC_PREV_DOC_NOLIST :
+        case IDC_NEXT_DOC_NOLIST :
         case IDC_PREV_DOC :
         case IDC_NEXT_DOC :
         {
+			//--FLS: CtrlTabF6: 
+			bool noTaskList = false;
+			if((id == IDC_PREV_DOC_NOLIST) || (id == IDC_NEXT_DOC_NOLIST))
+				noTaskList = true;
+			//--FLS: End --
 			size_t nbDoc = viewVisible(MAIN_VIEW) ? _mainDocTab.nbItem() : 0;
 			nbDoc += viewVisible(SUB_VIEW)?_subDocTab.nbItem():0;
 
@@ -3804,8 +3814,17 @@ void Notepad_plus::command(int id)
 			_isFolding = true;
 			if (nbDoc > 1)
 			{
-				bool direction = (id == IDC_NEXT_DOC)?dirDown:dirUp;
-				if (!doTaskList)
+				//--FLS: CtrlTabF6: Because of *_NOLIST extension, next line replaced by if-statement.
+				//bool direction = (id == IDC_NEXT_DOC)?dirDown:dirUp;
+				bool direction;
+				if ((id == IDC_NEXT_DOC)||(id == IDC_NEXT_DOC_NOLIST)) {
+					direction = dirDown;
+				}
+				else {
+					direction =dirUp;
+				}
+				if (!doTaskList || noTaskList)
+				//--FLS: End --
 				{
 					activateNextDoc(direction);
 				}

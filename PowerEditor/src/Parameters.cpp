@@ -459,7 +459,12 @@ static const WinMenuKeyDefinition winKeyDefs[] =
 	{ VK_NULL,    IDM_UPDATE_NPP,                               false, false, false, L"Update Notepad++" },
 	{ VK_NULL,    IDM_CONFUPDATERPROXY,                         false, false, false, L"Set Updater Proxy..." },
 	{ VK_NULL,    IDM_DEBUGINFO,                                false, false, false, nullptr },
-	{ VK_F1,      IDM_ABOUT,                                    false, false, false, nullptr }
+	{ VK_F1,      IDM_ABOUT,                                    false, false, false, nullptr },
+	//--FLS: CtrlTabF4: Ctrl-VK_F4 and Ctrl-W for IDM_FILE_CLOSE_2
+	{VK_F4,	   IDM_FILE_CLOSE_2,			   			true,  false, false, TEXT("Close 2")},
+	//--FLS: CtrlTabF6: Ctrl-VK_F6 and Ctrl-TAB for IDC_NEXT_DOC  (for IDC_PREV_DOC accordingly)
+	{VK_F6,	   IDC_PREV_DOC_NOLIST,					true,  false, true, TEXT("Switch to previous document (no switch menu)")}, //switch to prev. document directly
+	{VK_F6,	   IDC_NEXT_DOC_NOLIST,					true,  false, false, TEXT("Switch to next document (no switch menu)")} //switch to next document directly
 };
 
 
