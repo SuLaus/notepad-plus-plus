@@ -1015,6 +1015,17 @@ struct NppGUI final
 	DarkModeConf _darkmode;
 
 	LargeFileRestriction _largeFileRestriction;
+
+	//--FLS: xFileEditViewHistory: _lastFileEditViewList for (FileEditViewHistory)
+	//Session _lastFileEditViewSession;
+	int		_nbMaxFileEditView = 20;
+	//--FLS: xFileEditViewHistory: Parameter setting control for FileEditViewHistory (restores last EditView of files, if true)
+	bool _blnFileEditViewHistoryRestoreEnabled = true;
+
+	//-- FLS: Setting parameters for xSaveFoldingStateRestoreDisabledGUI: and xFileEditViewHistoryParameterGUI:
+	//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
+	bool _blnFoldingStateRestoreEnabled = true;
+
 };
 
 
@@ -1672,6 +1683,8 @@ public:
 	void writeShortcuts();
 	void writeSession(const Session & session, const wchar_t *fileName = NULL);
 	bool writeFindHistory();
+	//--FLS: xFileEditViewHistory: new function writeFileEditViewHistory()
+	void writeFileEditViewHistory(const Session & session);
 
 	bool isExistingUserLangName(const wchar_t *newName) const
 	{
@@ -1738,6 +1751,17 @@ public:
 	void addScintillaModifiedIndex(int index);
 
 	const Session & getSession() const {return _session;};
+	
+	//--FLS: xFileEditViewHistory: new functions for EditViewPerFileHistory --> Parameter nach nppGUI verschoben
+	Session * getPtrFileEditViewSession()  {return &_lastFileEditViewSession;}; 
+	//bool getFileEditViewHistoryRestoreEnabled() const {return _blnFileEditViewHistoryRestoreEnabled;};
+	//void setFileEditViewHistoryRestoreEnabled(bool en) { _blnFileEditViewHistoryRestoreEnabled=en;};
+	//int getNbMaxFileEditView() const {return _nbMaxFileEditView;};
+	//void setNbMaxFileEditView(int nb) {	_nbMaxFileEditView = nb;};
+
+	//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
+	//bool getFoldingStateRestoreEnabled() const {return _blnFoldingStateRestoreEnabled;};
+	//void setFoldingStateRestoreEnabled(bool en) { _blnFoldingStateRestoreEnabled=en;};
 
 	std::vector<MenuItemUnit>& getContextMenuItems() { return _contextMenuItems; };
 	std::vector<MenuItemUnit>& getTabContextMenuItems() { return _tabContextMenuItems; };
@@ -2035,6 +2059,14 @@ private:
 	DynamicMenu _runMenuItems;
 	Session _session;
 
+	//--FLS: xFileEditViewHistory: _lastFileEditViewList for (FileEditViewHistory)
+	Session _lastFileEditViewSession;
+	//int		_nbMaxFileEditView;     --> Parameter nach nppGUI verschoben
+	////--FLS: xFileEditViewHistory: Parameter setting control for FileEditViewHistory (restores last EditView of files, if true)
+	//bool _blnFileEditViewHistoryRestoreEnabled;
+	////--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
+	//bool _blnFoldingStateRestoreEnabled;
+
 	std::wstring _shortcutsPath;
 	std::wstring _contextMenuPath;
 	std::wstring _tabContextMenuPath;
@@ -2133,6 +2165,8 @@ private:
 	void feedGUIParameters(TiXmlNode *node);
 	void feedKeyWordsParameters(TiXmlNode *node);
 	void feedFileListParameters(TiXmlNode *node);
+    //--FLS: xFileEditViewHistory: new function feedFileEditViewHistoryParameters()
+	void feedFileEditViewHistoryParameters(TiXmlNode *node);
 	void feedScintillaParam(TiXmlNode *node);
 	void feedDockingManager(TiXmlNode *node);
 	void duplicateDockingManager(TiXmlNode *dockMngNode, TiXmlElement* dockMngElmt2Clone);

@@ -2871,6 +2871,14 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 				saveGUIParams(); //writeGUIParams writeScintillaParams
 				saveFindHistory(); //writeFindHistory
 				_lastRecentFileList.saveLRFL(); //writeRecentFileHistorySettings, writeHistory
+
+				//--FLS: xFileEditViewHistory: write also FileEditViewHistory
+				//Session lastSession = *(NppParameters::getInstance())->getPtrFileEditViewSession(); // _lastFileEditViewSession
+				Session lastSession = *(nppParam.getPtrFileEditViewSession());
+				//(NppParameters::getInstance())->writeFileEditViewHistory(lastSession);
+				nppParam.writeFileEditViewHistory(lastSession);
+				//-- FLS: End --
+
 				//
 				// saving config.xml
 				//

@@ -578,6 +578,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE /*hPrevInstance
 	bool doFunctionListExport = isInList(FLAG_FUNCLSTEXPORT, params);
 	bool doPrintAndQuit = isInList(FLAG_PRINTANDQUIT, params);
 
+	//--FLS: xMultiInstDevelopment: Development for always set MultiInst=true
+	//       ToDo: --- remove for release ---
+#ifdef DEBUG
+	isMultiInst = true;
+#endif
+
+
 	CmdLineParams cmdLineParams;
 	cmdLineParams._displayCmdLineArgs = isInList(FLAG_HELP, params);
 	cmdLineParams._isNoTab = isInList(FLAG_NOTABBAR, params);

@@ -169,7 +169,13 @@ public:
 
 	// The following functions apply to a single buffer and don't need to worry about views, with the exception of doClose,
 	// since closing one view doesn't have to mean the document is gone
-	BufferID doOpen(const std::wstring& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {});
+
+//--FLS: ToDo after Merge: LS Code von 2013 wurde uebernommen. Pruefen, ob neuerer Code von DonHo hier nicht auch beachtenswert ist.
+	//--FLS: xFileEditViewHistory: doOpen(fileName, isReadOnly, encoding) replaced by doOpen(fileName, isReadOnly, encoding, noRestoreFileEditView), due to reundancy of session-loading with RestoreFileEditView
+	// 7.6.3: BufferID doOpen(const generic_string& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const TCHAR *backupFileName = NULL, FILETIME fileNameTimestamp = {});
+	// 8.5.5: BufferID doOpen(const std::wstring& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {});
+	BufferID doOpen(const std::wstring &fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {}, bool noRestoreFileEditView = false);
+
 	bool doReload(BufferID id, bool alert = true);
 	bool doSave(BufferID, const wchar_t * filename, bool isSaveCopy = false);
 	void doClose(BufferID, int whichOne, bool doDeleteBackup = false);
@@ -217,6 +223,11 @@ public:
 	void saveFindHistory();
 
 	void getCurrentOpenedFiles(Session& session, bool includeUntitledDoc = false);
+	
+	//--FLS: xFileEditViewHistory: new function addFileToFileEditViewSession()
+	void addFileToFileEditViewSession(Session * pSession, const TCHAR *fileNamePath, BufferID id, int whichOne);
+	//--FLS: xFileEditViewHistory: new function declaration restoreFileEditView()
+	void restoreFileEditView(const TCHAR *longFileName, BufferID buffer);	
 
 	bool fileLoadSession(const wchar_t* fn = nullptr);
 	const wchar_t * fileSaveSession(size_t nbFile, wchar_t ** fileNames, const wchar_t *sessionFile2save, bool includeFileBrowser = false);
