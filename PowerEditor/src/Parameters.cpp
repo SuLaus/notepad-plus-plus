@@ -9289,7 +9289,7 @@ void NppParameters::feedFileEditViewHistoryParameters(TiXmlNode *node)
 	//		  	   which is not really an independent class but a somehow directly linked class to _nbMaxFile variable!!
 	//--FLS: Code stolen from getSessionFromXmlTree().
 	//-- Set default values for variables, if there would be a reading error.
-	_nppGUI._nbMaxFileEditView = 20;
+	_nppGUI._nbMaxFileEditView = 40;
 	_nppGUI._blnFileEditViewHistoryRestoreEnabled = true;
 	//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
 	_nppGUI._blnFoldingStateRestoreEnabled = false;

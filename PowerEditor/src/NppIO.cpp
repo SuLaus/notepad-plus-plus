@@ -187,7 +187,7 @@ bool resolveLinkFile(std::wstring& linkFilePath)
 // 6.5   BufferID Notepad_plus::doOpen(const TCHAR *fileName, bool isReadOnly, int encoding)
 // 7.6.3 BufferID Notepad_plus::doOpen(const generic_string& fileName, bool isRecursive, bool isReadOnly, int encoding, const TCHAR *backupFileName, FILETIME fileNameTimestamp)
 // 8.5.5 BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp)
-BufferID Notepad_plus::doOpen(const wstring &fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp, bool noRestoreFileEditView)
+BufferID Notepad_plus::doOpen(const wstring &fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp, bool blnRestoreFileEditView)
 {
 	const rsize_t longFileNameBufferSize = MAX_PATH;
 	if (fileName.size() >= longFileNameBufferSize - 1)
@@ -481,7 +481,7 @@ BufferID Notepad_plus::doOpen(const wstring &fileName, bool isRecursive, bool is
             }
         }
 		//--FLS: xFileEditViewHistory: File opened and now reset edit-view if file is in FileEditViewHistory and FileEditViewHistory is enabled!
-		if (!noRestoreFileEditView)
+		if (blnRestoreFileEditView)
 			restoreFileEditView(longFileName, buffer);
         PathRemoveFileSpec(longFileName);
         _linkTriggered = true;
@@ -886,8 +886,8 @@ void Notepad_plus::doClose(BufferID id, int whichOne, bool doDeleteBackup)
 
 		//--FLS: xFileEditViewHistory: save current edit-view into list of FileEditViewHistory (if enabled)
 		//--FLS: ToDo: Only save EditView, if there is not another open EditView in the other view.
-		Session *lastSession = (NppParameters::getInstance()).getPtrFileEditViewSession(); // returns pointer to _lastFileEditViewSession
-		addFileToFileEditViewSession(lastSession, buf->getFullPathName(), id, whichOne);
+		Session *lastFileEditViewSession = (NppParameters::getInstance()).getPtrFileEditViewSession();    // returns pointer to _lastFileEditViewSession
+		addFileToFileEditViewSession(lastFileEditViewSession, buf->getFullPathName(), id, whichOne);
 
 #ifndef	_WIN64
 		// We enable Wow64 system, if it was disabled
@@ -2526,14 +2526,14 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, const wch
 				//--FLS: ToDo after Merge: LS Code und Aenderungen von DonHo noch im Debugging Mergen --
 				//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy.
 				// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
-				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, true);
+				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, false);
 			else
 				//--FLS: ToDo after Merge: LS Code und Aenderungen von DonHo noch im Debugging Mergen --
 				//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy.
 				// 6.5   lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding, true);
 				// 7.6.3 lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding);
 				// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding);
-				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, NULL, {}, true);
+				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, NULL, {}, false);
 		}
 		else if (isSnapshotMode && doesFileExist(session._mainViewFiles[i]._backupFilePath.c_str()))
 		{
@@ -2541,7 +2541,7 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, const wch
 			// 6.5   lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding, true);
 			// 7.6.3 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
 			// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
-			lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, true);
+			lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, false);
 		}
 		else
 		{

@@ -9262,7 +9262,7 @@ void Notepad_plus::changeReadOnlyUserModeForAllOpenedTabs(const bool ro)
 
 
 //--FLS: xFileEditViewHistory: new function addFileToFileEditViewSession()
-void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *fileNamePath, BufferID bufID, int whichOne)
+void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, const wchar_t *fileNamePath, BufferID bufID, int whichOne)
 {
 	//--FLS: Adds the edit-view parameters of the current file, which is closed by fileClose()
 	//		 into the FileEditViewHistory-Session.
@@ -9273,9 +9273,8 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *
 	// NppParameters* pNppParam = NppParameters::getInstance();
 	NppGUI &nppGUI = const_cast<NppGUI &>(nppParam.getNppGUI());
 
-	//--FLS: ToDo: TCHAR -> std::wstring and string-compare lstrcpy() -> 
-	// see stackoverflow.com/questions/11635/… , I'd recommend either the Boost solution or extracting c_str and using wcscasecmp/_wcsicmp 
-	TCHAR strFileName[4*MAX_PATH];
+	//--FLS: ToDo: TCHAR -> std::wstring and string-compare lstrcpy() ->
+	// see stackoverflow.com/questions/11635/… , I'd recommend either the Boost solution or extracting c_str and using wcscasecmp/_wcsicmp
 	vector<sessionFileInfo>::iterator posIt;
 
 	//--Check, if FileEditViewHistoryRestore is Enabled
@@ -9296,32 +9295,58 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *
 		if (!(buf->isUntitled() && buf->docLength() == 0))
 		{
 			// 1.) Search throught the session list and if an entry with fileNamePath is available, delete the entry
-			for (size_t i = 0; i < pSession->_mainViewFiles.size(); i++)
+			for (size_t i = 0; i < pFileEditViewSession->_mainViewFiles.size(); i++)
 			{
-				lstrcpy(strFileName, pSession->_mainViewFiles[i]._fileName.c_str());
-				if (wcsicmp((TCHAR *)&strFileName, fileNamePath) == 0) {
-					posIt = pSession->_mainViewFiles.begin() + i;
-					pSession->_mainViewFiles.erase(posIt);
+				// wchar_t strFileName[4 * MAX_PATH];
+				//  lstrcpy(strFileName, pFileEditViewSession->_mainViewFiles[i]._fileName.c_str());
+				// if (wcsicmp((wchar_t *)&strFileName, fileNamePath) == 0) {
+				if (wcsicmp(pFileEditViewSession->_mainViewFiles[i]._fileName.c_str(), fileNamePath) == 0) {
+					posIt = pFileEditViewSession->_mainViewFiles.begin() + i;
+					pFileEditViewSession->_mainViewFiles.erase(posIt);
 				}
 			}
 
 			// 2.)  Insert the edit-view parameters at the end of the session list.
 			//		Code stolen from getCurrentOpenedFiles(currentSession) and doClose()
-			_pEditView->saveCurrentPos();                                     // save position so itll be correct in the session
-			pSession->_activeMainIndex = _mainDocTab.getCurrentTabIndex();    //--FLS: ToDo: Prüfen, ob pSession->_activeMainIndex überhaupt interessiert!!
+			_pEditView->saveCurrentPos();                                                 // save position so itll be correct in the session
+			pFileEditViewSession->_activeMainIndex = _mainDocTab.getCurrentTabIndex();    //--FLS: ToDo: Prüfen, ob pFileEditViewSession->_activeMainIndex überhaupt interessiert!!
 			// Use _invisibleEditView to temporarily open documents to retrieve markers
 			Document oldDoc = _invisibleEditView.execute(SCI_GETDOCPOINTER);
 			wstring languageName = getLangFromMenu(buf);
-			const TCHAR *langName = languageName.c_str();
-			sessionFileInfo sfi(buf->getFullPathName(), langName, buf->getEncoding(), buf->getUserReadOnly(), buf->isPinned(), buf->isUntitledTabRenamed(), buf->getPosition(_pEditView), NULL, {}, {});
+			const wchar_t *langName = languageName.c_str();
+
+			sessionFileInfo sfi(buf->getFullPathName(), langName, buf->getEncoding(), buf->getUserReadOnly(), buf->isPinned(), buf->isUntitledTabRenamed(), buf->getPosition(_pEditView), buf->getBackupFileName().c_str(), buf->getLastModifiedTimestamp(), buf->getMapPosition());
+
+			sfi._isMonitoring = buf->isMonitoringOn();
+			DocTabView *_docTab = (whichOne == MAIN_VIEW) ? &_mainDocTab : &_subDocTab;
+			int docTabIdx = _docTab->getIndexByBuffer(bufID);
+			sfi._individualTabColour = _docTab->getIndividualTabColourId(static_cast<int>(docTabIdx));
+			sfi._isRTL = buf->isRTL();
+
 			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, buf->getDocument());
-			size_t maxLine = _invisibleEditView.execute(SCI_GETLINECOUNT);
-			for (size_t j = 0; j < maxLine; j++)
-			{
-				if ((_invisibleEditView.execute(SCI_MARKERGET, j) & (1 << MARK_BOOKMARK)) != 0)
-				{
-					sfi._marks.push_back(j);
-				}
+			//--FLS: replaced by more efficient way to get markers.
+			// size_t maxLine = _invisibleEditView.execute(SCI_GETLINECOUNT);
+			// for (size_t j = 0; j < maxLine; j++)
+			//{
+			//	if ((_invisibleEditView.execute(SCI_MARKERGET, j) & (1 << MARK_BOOKMARK)) != 0)
+			//	{
+			//		sfi._marks.push_back(j);
+			//	}
+			//}
+			/* --FLS : More efficient way to get markers :
+				MarkerNext(lineStart as Integer, markerMask as Integer) as Integer Plugin Version: 22.0,
+				Function: Search efficiently for lines that include a given set of markers.
+				Notes: The search starts at line number lineStart and continues forwards to the end of the file (MarkerNext)
+				or backwards to the start of the file (MarkerPrevious).
+				The markerMask argument should have one bit set for each marker you wish to find.
+				Set bit 0 to find marker 0, bit 1 for marker 1 and so on. The message returns the line number of the first line
+				that contains one of the markers in markerMask or-1 if no marker is found.
+			*/
+			/* (1 << MARK_BOOKMARK) is bit for NPP mark */
+			long long nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, 0, (1 << MARK_BOOKMARK)));
+			while (nextMarkedLine != -1) {
+				sfi._marks.push_back(nextMarkedLine);
+				nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, nextMarkedLine + 1, (1 << MARK_BOOKMARK)));
 			}
 
 			//--FLS: xSaveFoldingStateSession:
@@ -9331,27 +9356,6 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *
 				Buffer *curBuf = _pEditView->getCurrentBuffer();
 				if (buf == curBuf)
 				{
-					//-- For active document get folding state from Scintilla.
-					// SCI_CONTRACTEDFOLDNEXT(int lineStart)
-					//  Search efficiently for lines that are contracted fold headers.
-					//  This is useful when saving the user's folding when switching documents or saving folding with a file.
-					//  The search starts at line number lineStart and continues forwards to the end of the file.
-					//  lineStart is returned if it is a contracted fold header otherwise the next contracted fold header is returned.
-					//  If there are no more contracted fold headers then -1 is returned.
-					//-- Folding state is not copied to invisible view but only accessable in original view !!
-					// int contractedFoldHeaderLine=0;
-					// do {
-					//	contractedFoldHeaderLine = _pEditView->execute(SCI_CONTRACTEDFOLDNEXT, contractedFoldHeaderLine);
-					//	if (contractedFoldHeaderLine != -1) {
-					//		//-- Store contracted line
-					//		sfi._foldStates.push_back(contractedFoldHeaderLine);
-					//		//-- Start next search with next line
-					//		contractedFoldHeaderLine++;
-					//	}
-					//} while (contractedFoldHeaderLine != -1);
-					//------------------------
-					//-- FLS: The above code using SCI_CONTRACTEDFOLDNEXT is usually 10%-30% faster than checking each line of the document!!
-					//-- FLS: ToDo: Replace code in getCurrentFoldStates() with mine using SCI_CONTRACTEDFOLDNEXT !! 01.05.13 Done!
 					_pEditView->getCurrentFoldStates(sfi._foldStates);
 				}
 				else
@@ -9362,7 +9366,7 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *
 			}    //--FLS: xSaveFoldingStateRestoreDisabled:
 
 			//-- saving sfi in session --
-			pSession->_mainViewFiles.push_back(sfi);
+			pFileEditViewSession->_mainViewFiles.push_back(sfi);
 
 			//--FLS: Restore original saved document to invisibleEditView
 			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, oldDoc);
@@ -9372,7 +9376,7 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pSession, const TCHAR *
 }    //-- addFileToFileEditViewSession() -----------------
 
 //--FLS: xFileEditViewHistory: new function restoreFileEditView()
-void Notepad_plus::restoreFileEditView(const TCHAR *longFileName, BufferID buffer)
+void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buffer)
 {
 	//--FLS: FileEditViewHistory: restores edit-view settings (cursor position, marks, etc.) of files
 	//       as they were when the file was closes the last time.
@@ -9389,7 +9393,7 @@ void Notepad_plus::restoreFileEditView(const TCHAR *longFileName, BufferID buffe
 	//--Check, if FileEditViewHistoryRestore is Enabled
 	// if ((NppParameters::getInstance())->getFileEditViewHistoryRestoreEnabled()) {
 	// ToDo FLS: -- delete here, because only for debuggin of saving fileHistory:
-	//if (0) {
+	// if (0) {
 	if (nppGUI._blnFileEditViewHistoryRestoreEnabled) {
 		//--FLS: Get current buffer for comparison with buffer of new loaded document.
 		//-- a.) Buffers are the same, if the newly loaded document is the first document (e.g. new xx).
@@ -9427,15 +9431,15 @@ void Notepad_plus::restoreFileEditView(const TCHAR *longFileName, BufferID buffe
 		Session lastSession = *(NppParameters::getInstance()).getPtrFileEditViewSession();    // _lastFileEditViewSession
 		for (size_t i = 0; i < lastSession._mainViewFiles.size(); i++)
 		{
-			const TCHAR *pFn = lastSession._mainViewFiles[i]._fileName.c_str();
+			const wchar_t *pFn = lastSession._mainViewFiles[i]._fileName.c_str();
 			//-- searches through the list of FileEditViewSession for the recent FileName and restores the edit-view if found.
 			int res = wcsicmp(longFileName, pFn);
 			if (res == 0)
 			{
 				//--FLS: Compare restore actions with restore actions in loadSession() in NppIO.cpp - if (lastOpened)-case.!!
 				// showView(currentView());  //--- not needed, because view is not changed!
-				const TCHAR *pLn = lastSession._mainViewFiles[i]._langName.c_str();
-				//int id = getLangFromMenuName(pLn);
+				const wchar_t *pLn = lastSession._mainViewFiles[i]._langName.c_str();
+				// int id = getLangFromMenuName(pLn);
 				LangType langTypeToSet = L_TEXT;
 				Buffer *buf = MainFileManager.getBufferByID(buffer);
 
@@ -9444,7 +9448,7 @@ void Notepad_plus::restoreFileEditView(const TCHAR *longFileName, BufferID buffe
 					langTypeToSet = menuID2LangType(id);
 				if (langTypeToSet == L_EXTERNAL)
 					langTypeToSet = (LangType)(id - IDM_LANG_EXTERNAL + L_EXTERNAL);
-			    -- --old Code FLS-- END-- -- -- --*/
+				-- --old Code FLS-- END-- -- -- --*/
 				if (!buf->isLargeFile())
 				{
 					pLn = lastSession._mainViewFiles[i]._langName.c_str();
@@ -9504,7 +9508,7 @@ void Notepad_plus::restoreFileEditView(const TCHAR *longFileName, BufferID buffe
 
 				buf->setUntitledTabRenamedStatus(lastSession._mainViewFiles[i]._isUntitledTabRenamed);
 
-			    buf->setRTL(lastSession._mainViewFiles[i]._isRTL);
+				buf->setRTL(lastSession._mainViewFiles[i]._isRTL);
 				if (i == 0 && lastSession._activeMainIndex == 0)
 					_mainEditView.changeTextDirection(buf->isRTL());
 

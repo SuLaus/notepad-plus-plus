@@ -174,7 +174,7 @@ public:
 	//--FLS: xFileEditViewHistory: doOpen(fileName, isReadOnly, encoding) replaced by doOpen(fileName, isReadOnly, encoding, noRestoreFileEditView), due to reundancy of session-loading with RestoreFileEditView
 	// 7.6.3: BufferID doOpen(const generic_string& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const TCHAR *backupFileName = NULL, FILETIME fileNameTimestamp = {});
 	// 8.5.5: BufferID doOpen(const std::wstring& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {});
-	BufferID doOpen(const std::wstring &fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {}, bool noRestoreFileEditView = false);
+	BufferID doOpen(const std::wstring &fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {}, bool blnRestoreFileEditView = true);
 
 	bool doReload(BufferID id, bool alert = true);
 	bool doSave(BufferID, const wchar_t * filename, bool isSaveCopy = false);
