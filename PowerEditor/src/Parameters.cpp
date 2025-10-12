@@ -9183,53 +9183,53 @@ LanguageNameInfo NppParameters::getLangNameInfoFromNameID(const wstring& langNam
 
 
 //--FLS: xFileEditViewHistory: new function writeFileEditViewHistory()
-void NppParameters::writeFileEditViewHistory(const Session & session)
+void NppParameters::writeFileEditViewHistory(const Session &session)
 {
 	//--FLS: Opens the XML-node of config.xml file and dumps the session. File is saved when notepad++ is exited.
 	//-- Code stolen from writeSession()
 	//--FLS: Use _mainViewFiles for ALL session files, even for the sub-view files, because FileEditViewHistory does not distinguish.
-	if (!_pXmlUserDoc) return; //otherwise, this will cause a system error!
-	TiXmlNode *nppRoot = _pXmlUserDoc->FirstChild(TEXT("NotepadPlus"));
+	if (!_pXmlUserDoc) return;    // otherwise, this will cause a system error!
+	TiXmlNode *nppRoot = _pXmlUserDoc->FirstChild(L"NotepadPlus");
 	if (!nppRoot) return;
 	TiXmlNode *sessionNode;
-	sessionNode = nppRoot->FirstChildElement(TEXT("FileEditViewHistory"));
+	sessionNode = nppRoot->FirstChildElement(L"FileEditViewHistory");
 	//--FLS: Erase always FileEditViewHistory node and re-insert it at the end.
-	if (sessionNode) 
+	if (sessionNode)
 		nppRoot->RemoveChild(sessionNode);
-	sessionNode = new TiXmlElement(TEXT("FileEditViewHistory"));
+	sessionNode = new TiXmlElement(L"FileEditViewHistory");
 	if (!sessionNode) return;
 
 	//--FLS: Write FileEditViewHistory to config.xml Document. Note: Document is only written to config.xml-file with _pXmlUserDoc->SaveFile()!
-	(sessionNode->ToElement())->SetAttribute(TEXT("FileEditViewHistoryRestoreEnabled"), _nppGUI._blnFileEditViewHistoryRestoreEnabled?TEXT("True"):TEXT("False"));
+	(sessionNode->ToElement())->SetAttribute(L"FileEditViewHistoryRestoreEnabled", _nppGUI._blnFileEditViewHistoryRestoreEnabled ? L"True" : L"False");
 	//--FLS: xSaveFoldingStateRestoreDisabled:
-	(sessionNode->ToElement())->SetAttribute(TEXT("FoldingStateRestoreEnabled"), _nppGUI._blnFoldingStateRestoreEnabled?TEXT("True"):TEXT("False"));
+	(sessionNode->ToElement())->SetAttribute(L"FoldingStateRestoreEnabled", _nppGUI._blnFoldingStateRestoreEnabled ? L"True" : L"False");
 	//--FLS: Write Attribute "nbMaxFile" and activeIndex
-	(sessionNode->ToElement())->SetAttribute(TEXT("nbMaxFile"), (int)_nppGUI._nbMaxFileEditView);
-	int actIndex = 0; // set default, if no file is present!!
+	(sessionNode->ToElement())->SetAttribute(L"nbMaxFile", (int)_nppGUI._nbMaxFileEditView);
+	int actIndex = 0;    // set default, if no file is present!!
 	if (session._mainViewFiles.size() != 0) actIndex = static_cast<int>(session._activeMainIndex);
-	(sessionNode->ToElement())->SetAttribute(TEXT("activeMainIndex"), actIndex);
+	(sessionNode->ToElement())->SetAttribute(L"activeMainIndex", actIndex);
 	//-- Only write last _nbMaxFileEditView elements from session.
 	long nAll = static_cast<long>(session._mainViewFiles.size());
-	long nStart = (nAll - _nppGUI._nbMaxFileEditView)>0?(nAll - _nppGUI._nbMaxFileEditView):0;
+	long nStart = (nAll - _nppGUI._nbMaxFileEditView) > 0 ? (nAll - _nppGUI._nbMaxFileEditView) : 0;
 	for (size_t i = nStart; i < session._mainViewFiles.size(); i++)
 	{
-		TiXmlNode *fileNameNode = sessionNode->InsertEndChild(TiXmlElement(TEXT("File")));
+		TiXmlNode *fileNameNode = sessionNode->InsertEndChild(TiXmlElement(L"File"));
 		////--FLS: Don't save editViewIndex, because for file edit view history user wants to load the document allways into the current view.
 
 		wchar_t szInt64[64];
 
-		(fileNameNode->ToElement())->SetAttribute(TEXT("firstVisibleLine"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._firstVisibleLine), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("xOffset"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._xOffset), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("scrollWidth"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._scrollWidth), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("startPos"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._startPos), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("endPos"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._endPos), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("selMode"), _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._selMode), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"firstVisibleLine", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._firstVisibleLine), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"xOffset", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._xOffset), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"scrollWidth", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._scrollWidth), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"startPos", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._startPos), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"endPos", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._endPos), szInt64, 10));
+		(fileNameNode->ToElement())->SetAttribute(L"selMode", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._selMode), szInt64, 10));
 		(fileNameNode->ToElement())->SetAttribute(L"offset", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._offset), szInt64, 10));
 		(fileNameNode->ToElement())->SetAttribute(L"wrapCount", _i64tot(static_cast<LONGLONG>(session._mainViewFiles[i]._wrapCount), szInt64, 10));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("lang"), session._mainViewFiles[i]._langName.c_str());
-		(fileNameNode->ToElement())->SetAttribute(TEXT("encoding"), session._mainViewFiles[i]._encoding);
-		(fileNameNode->ToElement())->SetAttribute(TEXT("userReadOnly"), (session._mainViewFiles[i]._isUserReadOnly && !session._mainViewFiles[i]._isMonitoring) ? TEXT("yes") : TEXT("no"));
-		(fileNameNode->ToElement())->SetAttribute(TEXT("filename"), session._mainViewFiles[i]._fileName.c_str());
+		(fileNameNode->ToElement())->SetAttribute(L"lang", session._mainViewFiles[i]._langName.c_str());
+		(fileNameNode->ToElement())->SetAttribute(L"encoding", session._mainViewFiles[i]._encoding);
+		(fileNameNode->ToElement())->SetAttribute(L"userReadOnly", (session._mainViewFiles[i]._isUserReadOnly && !session._mainViewFiles[i]._isMonitoring) ? L"yes" : L"no");
+		(fileNameNode->ToElement())->SetAttribute(L"filename", session._mainViewFiles[i]._fileName.c_str());
 		(fileNameNode->ToElement())->SetAttribute(L"backupFilePath", session._mainViewFiles[i]._backupFilePath.c_str());
 		(fileNameNode->ToElement())->SetAttribute(L"originalFileLastModifTimestamp", static_cast<int32_t>(session._mainViewFiles[i]._originalFileLastModifTimestamp.dwLowDateTime));
 		(fileNameNode->ToElement())->SetAttribute(L"originalFileLastModifTimestampHigh", static_cast<int32_t>(session._mainViewFiles[i]._originalFileLastModifTimestamp.dwHighDateTime));
@@ -9258,7 +9258,7 @@ void NppParameters::writeFileEditViewHistory(const Session & session)
 		for (size_t j = 0; j < session._mainViewFiles[i]._marks.size(); j++)
 		{
 			size_t markLine = session._mainViewFiles[i]._marks[j];
-			TiXmlNode *markNode = fileNameNode->InsertEndChild(TiXmlElement(TEXT("Mark")));
+			TiXmlNode *markNode = fileNameNode->InsertEndChild(TiXmlElement(L"Mark"));
 			markNode->ToElement()->SetAttribute(L"line", _ui64tot(static_cast<ULONGLONG>(markLine), szInt64, 10));
 		}
 		//--FLS: xSaveFoldingStateSession:
@@ -9270,22 +9270,22 @@ void NppParameters::writeFileEditViewHistory(const Session & session)
 				TiXmlNode *foldNode = fileNameNode->InsertEndChild(TiXmlElement(L"Fold"));
 				foldNode->ToElement()->SetAttribute(L"line", _ui64tot(static_cast<ULONGLONG>(foldLine), szInt64, 10));
 			}
-		}    //--FLS: xSaveFoldingStateRestoreDisabled: 
+		}    //--FLS: xSaveFoldingStateRestoreDisabled:
 	}
 	//-- (Re)Insert the XML-node
 	(nppRoot->ToElement())->InsertEndChild(*sessionNode);
-} //--- writeFileEditViewHistory() ----
+}    //--- writeFileEditViewHistory() ----
 
 
 //--FLS: xFileEditViewHistory: new function feedFileEditViewHistoryParameters()
 //  Reads the parameters from the config.xml file Node, after config.xml file is loaded.
 void NppParameters::feedFileEditViewHistoryParameters(TiXmlNode *node)
 {
-	const TCHAR *str;
+	const wchar_t *str;
 	//--FLS: Reads the FileEditViewHistory parameters out of according section in config.xml and stores them
 	//	     in a Session _lastFileEditViewSession.
 	//--FLS: Use _mainViewFiles for ALL session files, even for the sub-view files, because FileEditViewHistory does not distinguish.
-	//--FLS: Note: Don't use _nbMaxFile, which is directly assigned to the history _LRFileList, 
+	//--FLS: Note: Don't use _nbMaxFile, which is directly assigned to the history _LRFileList,
 	//		  	   which is not really an independent class but a somehow directly linked class to _nbMaxFile variable!!
 	//--FLS: Code stolen from getSessionFromXmlTree().
 	//-- Set default values for variables, if there would be a reading error.
@@ -9295,176 +9295,102 @@ void NppParameters::feedFileEditViewHistoryParameters(TiXmlNode *node)
 	_nppGUI._blnFoldingStateRestoreEnabled = false;
 	//--FLS: Read FileEditViewHistory list into NppParameters global _lastFileEditViewSession. Same approach as used in getSessionFromXmlTree().
 	Session *ptrSession = &_lastFileEditViewSession;
-	TiXmlNode *sessionRoot = node->FirstChildElement(TEXT("FileEditViewHistory"));
+	TiXmlNode *sessionRoot = node->FirstChildElement(L"FileEditViewHistory");
 	if (!sessionRoot)
 		return;
 	TiXmlElement *actIndex = sessionRoot->ToElement();
 	size_t index;
-	str = actIndex->Attribute(TEXT("FileEditViewHistoryRestoreEnabled"), (int *)&index);
+	str = actIndex->Attribute(L"FileEditViewHistoryRestoreEnabled", (int *)&index);
 	if (str) {
-		_nppGUI._blnFileEditViewHistoryRestoreEnabled = !wcsicmp(TEXT("TRUE"), str);
+		_nppGUI._blnFileEditViewHistoryRestoreEnabled = !wcsicmp(L"TRUE", str);
 	}
 	//--FLS: Only one of the flags _fileEditViewHistoryRestoreEnabled or _rememberLastSession should be enabled!
 	//       The GUI parameters have to be initialized before!!!
-	//if (_nppGUI._rememberLastSession && _blnFileEditViewHistoryRestoreEnabled) _blnFileEditViewHistoryRestoreEnabled = false;
 
 	//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
-	str = actIndex->Attribute(TEXT("FoldingStateRestoreEnabled"), (int *)&index);
+	str = actIndex->Attribute(L"FoldingStateRestoreEnabled", (int *)&index);
 	if (str) {
-		_nppGUI._blnFoldingStateRestoreEnabled = !wcsicmp(TEXT("TRUE"), str);
+		_nppGUI._blnFoldingStateRestoreEnabled = !wcsicmp(L"TRUE", str);
 	}
 
 	//--FLS: ->Attribute(const char *name, int *i) returns i=0, if a reading error occurs.
 	//       Therefore, the code using "if (str)..." is not needed and is not the best, because it lets the ptrSession parameter uninitialized.
-	// read also activeYyIndex, which is not needed but just handled to set it in the session structure.
-	str = actIndex->Attribute(TEXT("activeView"), (int *)&(ptrSession->_activeView));
-	str = actIndex->Attribute(TEXT("activeMainIndex"), (int *)&(ptrSession->_activeMainIndex));
-	str = actIndex->Attribute(TEXT("activeSubIndex"), (int *)&(ptrSession->_activeSubIndex));
+	//       Read also activeYyIndex, which is not needed but just handled to set it in the session structure.
+	str = actIndex->Attribute(L"activeView", (int *)&(ptrSession->_activeView));
+	str = actIndex->Attribute(L"activeMainIndex", (int *)&(ptrSession->_activeMainIndex));
+	str = actIndex->Attribute(L"activeSubIndex", (int *)&(ptrSession->_activeSubIndex));
 
 	// read maximum list size
-	str = actIndex->Attribute(TEXT("nbMaxFile"), &_nppGUI._nbMaxFileEditView);
+	str = actIndex->Attribute(L"nbMaxFile", &_nppGUI._nbMaxFileEditView);
 
-	for (TiXmlNode *childNode = sessionRoot->FirstChildElement(TEXT("File"));
-		childNode ;
-		childNode = childNode->NextSibling(TEXT("File")) )
+	for (TiXmlNode *childNode = sessionRoot->FirstChildElement(L"File");
+		 childNode;
+		 childNode = childNode->NextSibling(L"File"))
 	{
-		const TCHAR *fileName = (childNode->ToElement())->Attribute(TEXT("filename"));
-		//const wchar_t  *fileName = (childNode->ToElement())->Attribute(TEXT("filename"));
+		const wchar_t *fileName = (childNode->ToElement())->Attribute(L"filename");
 		if (fileName)
 		{
-		Position position;
-		/*-- FLS: ---- old Code FLS .... ----------
-		(childNode->ToElement())->Attribute(TEXT("firstVisibleLine"), &position._firstVisibleLine);
-		(childNode->ToElement())->Attribute(TEXT("xOffset"), &position._xOffset);
-		(childNode->ToElement())->Attribute(TEXT("startPos"), &position._startPos);
-		(childNode->ToElement())->Attribute(TEXT("endPos"), &position._endPos);
-		(childNode->ToElement())->Attribute(TEXT("selMode"), &position._selMode);
-		(childNode->ToElement())->Attribute(TEXT("scrollWidth"), &position._scrollWidth);
-		bool isUserReadOnly = false;
-		const TCHAR *boolStrReadOnly = (childNode->ToElement())->Attribute(TEXT("userReadOnly"));
-		if (boolStrReadOnly)
-			isUserReadOnly = _wcsicmp(TEXT("yes"), boolStrReadOnly) == 0;
-		---- old Code FLS --END--------*/
+			Position position;
 
-		/*--- New 8.5.5 code from  getSessionFromXMLTree() .... --------------*/
-		const wchar_t *posStr = (childNode->ToElement())->Attribute(L"firstVisibleLine");
-		if (posStr)
-			position._firstVisibleLine = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"xOffset");
-		if (posStr)
-			position._xOffset = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"startPos");
-		if (posStr)
-			position._startPos = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"endPos");
-		if (posStr)
-			position._endPos = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"selMode");
-		if (posStr)
-			position._selMode = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"scrollWidth");
-		if (posStr)
-			position._scrollWidth = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"offset");
-		if (posStr)
-			position._offset = static_cast<intptr_t>(_ttoi64(posStr));
-		posStr = (childNode->ToElement())->Attribute(L"wrapCount");
-		if (posStr)
-			position._wrapCount = static_cast<intptr_t>(_ttoi64(posStr));
+			/*--- New 8.5.5 code from  getSessionFromXMLTree() .... --------------*/
+			const wchar_t *posStr = (childNode->ToElement())->Attribute(L"firstVisibleLine");
+			if (posStr)
+				position._firstVisibleLine = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"xOffset");
+			if (posStr)
+				position._xOffset = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"startPos");
+			if (posStr)
+				position._startPos = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"endPos");
+			if (posStr)
+				position._endPos = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"selMode");
+			if (posStr)
+				position._selMode = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"scrollWidth");
+			if (posStr)
+				position._scrollWidth = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"offset");
+			if (posStr)
+				position._offset = static_cast<intptr_t>(_ttoi64(posStr));
+			posStr = (childNode->ToElement())->Attribute(L"wrapCount");
+			if (posStr)
+				position._wrapCount = static_cast<intptr_t>(_ttoi64(posStr));
 
-		MapPosition mapPosition;
-		const wchar_t *mapPosStr = (childNode->ToElement())->Attribute(L"mapFirstVisibleDisplayLine");
-		if (mapPosStr)
-			mapPosition._firstVisibleDisplayLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapFirstVisibleDocLine");
-		if (mapPosStr)
-			mapPosition._firstVisibleDocLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapLastVisibleDocLine");
-		if (mapPosStr)
-			mapPosition._lastVisibleDocLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapNbLine");
-		if (mapPosStr)
-			mapPosition._nbLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapHigherPos");
-		if (mapPosStr)
-			mapPosition._higherPos = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapWidth");
-		if (mapPosStr)
-			mapPosition._width = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapHeight");
-		if (mapPosStr)
-			mapPosition._height = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapKByteInDoc");
-		if (mapPosStr)
-			mapPosition._KByteInDoc = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		mapPosStr = (childNode->ToElement())->Attribute(L"mapWrapIndentMode");
-		if (mapPosStr)
-			mapPosition._wrapIndentMode = static_cast<intptr_t>(_ttoi64(mapPosStr));
-		const wchar_t *boolStr = (childNode->ToElement())->Attribute(L"mapIsWrap");
-		if (boolStr)
-			mapPosition._isWrap = (lstrcmp(L"yes", boolStr) == 0);
-		/*--- New 8.5.5 code from  getSessionFromXMLTree() --- END --------------*/
+			MapPosition mapPosition;
+			const wchar_t *mapPosStr = (childNode->ToElement())->Attribute(L"mapFirstVisibleDisplayLine");
+			if (mapPosStr)
+				mapPosition._firstVisibleDisplayLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapFirstVisibleDocLine");
+			if (mapPosStr)
+				mapPosition._firstVisibleDocLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapLastVisibleDocLine");
+			if (mapPosStr)
+				mapPosition._lastVisibleDocLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapNbLine");
+			if (mapPosStr)
+				mapPosition._nbLine = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapHigherPos");
+			if (mapPosStr)
+				mapPosition._higherPos = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapWidth");
+			if (mapPosStr)
+				mapPosition._width = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapHeight");
+			if (mapPosStr)
+				mapPosition._height = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapKByteInDoc");
+			if (mapPosStr)
+				mapPosition._KByteInDoc = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			mapPosStr = (childNode->ToElement())->Attribute(L"mapWrapIndentMode");
+			if (mapPosStr)
+				mapPosition._wrapIndentMode = static_cast<intptr_t>(_ttoi64(mapPosStr));
+			const wchar_t *boolStr = (childNode->ToElement())->Attribute(L"mapIsWrap");
+			if (boolStr)
+				mapPosition._isWrap = (lstrcmp(L"yes", boolStr) == 0);
 
-		/*-- FLS:---- old Code FLS .... ----------
-			const TCHAR *langName;
-			langName = (childNode->ToElement())->Attribute(TEXT("lang"));
-			int encoding = -1;
-			const TCHAR *encStr = (childNode->ToElement())->Attribute(TEXT("encoding"), &encoding);
-
-			const wchar_t *pBackupFilePath = (childNode->ToElement())->Attribute(L"backupFilePath");
-			std::wstring currentBackupFilePath = NppParameters::getInstance().getUserPath() + L"\\backup\\";
-			if (pBackupFilePath)
-			{
-			std::wstring backupFilePath = pBackupFilePath;
-			if (!backupFilePath.starts_with(currentBackupFilePath))
-			{
-					// reconstruct backupFilePath
-					wchar_t *fn = PathFindFileName(pBackupFilePath);
-					currentBackupFilePath += fn;
-					pBackupFilePath = currentBackupFilePath.c_str();
-			}
-			}
-
-			FILETIME fileModifiedTimestamp {};
-			(childNode->ToElement())->Attribute(L"originalFileLastModifTimestamp", reinterpret_cast<int32_t *>(&fileModifiedTimestamp.dwLowDateTime));
-			(childNode->ToElement())->Attribute(L"originalFileLastModifTimestampHigh", reinterpret_cast<int32_t *>(&fileModifiedTimestamp.dwHighDateTime));
-
-			bool isUserReadOnly = false;
-			const wchar_t *boolStrReadOnly = (childNode->ToElement())->Attribute(L"userReadOnly");
-			if (boolStrReadOnly)
-			isUserReadOnly = _wcsicmp(L"yes", boolStrReadOnly) == 0;
-
-			bool isPinned = false;
-			const wchar_t *boolStrPinned = (childNode->ToElement())->Attribute(L"tabPinned");
-			if (boolStrPinned)
-			isPinned = _wcsicmp(L"yes", boolStrPinned) == 0;
-
-			bool isUntitleTabRenamed = false;
-			const wchar_t *boolStrTabRenamed = (childNode->ToElement())->Attribute(L"untitleTabRenamed");
-			if (boolStrTabRenamed)
-			isUntitleTabRenamed = _wcsicmp(L"yes", boolStrTabRenamed) == 0;
-
-			//--FLS: Setup sfi with information read and stored into local variables:
-			//--FLS: ToDo: Clarify, if all those information is needed here!
-			sessionFileInfo sfi(fileName, langName, encStr ? encoding : -1, isUserReadOnly, isPinned, isUntitleTabRenamed, position, pBackupFilePath, fileModifiedTimestamp, mapPosition);
-			//sessionFileInfo sfi(fileName, langName, encStr ? encoding : -1, isUserReadOnly, position, NULL, {}, {});
-
-			for (TiXmlNode *markNode = childNode->FirstChildElement(TEXT("Mark"));
-				markNode ;
-				markNode = markNode->NextSibling(TEXT("Mark")))
-			{
-				int lineNumber;
-				const TCHAR *lineNumberStr = (markNode->ToElement())->Attribute(TEXT("line"), &lineNumber);
-				if (lineNumberStr)
-				{
-					sfi._marks.push_back(lineNumber);
-				}
-			}
-		---- old Code FLS --END--------*/
-
-			
-		/*--- New 8.5.5 code from  getSessionFromXMLTree() .... --------------*/
-					const wchar_t *langName;
+			const wchar_t *langName;
 			langName = (childNode->ToElement())->Attribute(L"lang");
 			int encoding = -1;
 			const wchar_t *encStr = (childNode->ToElement())->Attribute(L"encoding", &encoding);
@@ -9531,22 +9457,9 @@ void NppParameters::feedFileEditViewHistoryParameters(TiXmlNode *node)
 			/*--- New 8.5.5 code from  getSessionFromXMLTree() --- END --------------*/
 
 
-			//--FLS: xSaveFoldingStateSession: 
+			//--FLS: xSaveFoldingStateSession:
 			//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
 			if (_nppGUI._blnFoldingStateRestoreEnabled) {
-				/*-- FLS:---- old Code FLS .... ----------
-				for (TiXmlNode *foldNode = childNode->FirstChildElement(TEXT("Fold"));
-					 foldNode;
-					 foldNode = foldNode->NextSibling(TEXT("Fold")))
-				{
-					int lineNumber;
-					const TCHAR *lineNumberStr = (foldNode->ToElement())->Attribute(TEXT("line"), &lineNumber);
-					if (lineNumberStr)
-					{
-						sfi._foldStates.push_back(lineNumber);
-					}
-				}
-			    -- --old Code FLS-- END-- -- -- --*/
 				/*--- New 8.5.5 code from  getSessionFromXMLTree() ------------------*/
 				for (TiXmlNode *foldNode = childNode->FirstChildElement(L"Fold");
 					 foldNode;
@@ -9558,14 +9471,13 @@ void NppParameters::feedFileEditViewHistoryParameters(TiXmlNode *node)
 						sfi._foldStates.push_back(static_cast<size_t>(_ttoi64(lineNumberStr)));
 					}
 				}
-		/*--- New 8.5.5 code from  getSessionFromXMLTree() --- END --------------*/
-			} //--FLS: xSaveFoldingStateRestoreDisabled: 
+				/*--- New 8.5.5 code from  getSessionFromXMLTree() --- END --------------*/
+			}    //--FLS: xSaveFoldingStateRestoreDisabled:
 
-			//--FLS: 
-	//--FLS: Read FileEditViewHistory list into NppParameters global _lastFileEditViewSession. Same approach as used in getSessionFromXmlTree().
+			//--FLS:
+			//--FLS: Read FileEditViewHistory list into NppParameters global _lastFileEditViewSession. Same approach as used in getSessionFromXmlTree().
 			(*ptrSession)._mainViewFiles.push_back(sfi);
 		}
 	}
 	return;
-} //---feedFileEditViewHistoryParameters()-----
-
+}    //---feedFileEditViewHistoryParameters()-----

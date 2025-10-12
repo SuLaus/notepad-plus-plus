@@ -182,11 +182,8 @@ bool resolveLinkFile(std::wstring& linkFilePath)
 	return isResolved;
 }
 
-//--FLS: ToDo after Merge: LS Code und Aenderungen von DonHo noch im Debugging Mergen --
-//--FLS: xFileEditViewHistory: Additional parameter "noRestoreFileEditView" to avoid redundancy when a session is loaded!
-// 6.5   BufferID Notepad_plus::doOpen(const TCHAR *fileName, bool isReadOnly, int encoding)
-// 7.6.3 BufferID Notepad_plus::doOpen(const generic_string& fileName, bool isRecursive, bool isReadOnly, int encoding, const TCHAR *backupFileName, FILETIME fileNameTimestamp)
-// 8.5.5 BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp)
+//--FLS: xFileEditViewHistory: Additional parameter "blnRestoreFileEditView" at doOpen() to avoid reundancy of session-loading with RestoreFileEditView loading.
+//       For doOpen() calls within  loadSession() the blnRestoreFileEditView is set to false.
 BufferID Notepad_plus::doOpen(const wstring &fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp, bool blnRestoreFileEditView)
 {
 	const rsize_t longFileNameBufferSize = MAX_PATH;

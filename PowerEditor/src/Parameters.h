@@ -1752,16 +1752,7 @@ public:
 
 	const Session & getSession() const {return _session;};
 	
-	//--FLS: xFileEditViewHistory: new functions for EditViewPerFileHistory --> Parameter nach nppGUI verschoben
 	Session * getPtrFileEditViewSession()  {return &_lastFileEditViewSession;}; 
-	//bool getFileEditViewHistoryRestoreEnabled() const {return _blnFileEditViewHistoryRestoreEnabled;};
-	//void setFileEditViewHistoryRestoreEnabled(bool en) { _blnFileEditViewHistoryRestoreEnabled=en;};
-	//int getNbMaxFileEditView() const {return _nbMaxFileEditView;};
-	//void setNbMaxFileEditView(int nb) {	_nbMaxFileEditView = nb;};
-
-	//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
-	//bool getFoldingStateRestoreEnabled() const {return _blnFoldingStateRestoreEnabled;};
-	//void setFoldingStateRestoreEnabled(bool en) { _blnFoldingStateRestoreEnabled=en;};
 
 	std::vector<MenuItemUnit>& getContextMenuItems() { return _contextMenuItems; };
 	std::vector<MenuItemUnit>& getTabContextMenuItems() { return _tabContextMenuItems; };

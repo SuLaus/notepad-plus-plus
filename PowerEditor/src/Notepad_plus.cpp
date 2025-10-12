@@ -9273,17 +9273,12 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 	// NppParameters* pNppParam = NppParameters::getInstance();
 	NppGUI &nppGUI = const_cast<NppGUI &>(nppParam.getNppGUI());
 
-	//--FLS: ToDo: TCHAR -> std::wstring and string-compare lstrcpy() ->
+	//--FLS: ToDo: TCHAR - wchar_t -> std::wstring and string-compare lstrcpy() ->
 	// see stackoverflow.com/questions/11635/… , I'd recommend either the Boost solution or extracting c_str and using wcscasecmp/_wcsicmp
 	vector<sessionFileInfo>::iterator posIt;
 
 	//--Check, if FileEditViewHistoryRestore is Enabled
-	// if ((NppParameters::getInstance())->getFileEditViewHistoryRestoreEnabled()) {
 	if (nppGUI._blnFileEditViewHistoryRestoreEnabled) {
-
-		//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
-		// bool blnFoldingStateRestoreEnabled = NppParameters::getInstance()->getFoldingStateRestoreEnabled();
-		bool blnFoldingStateRestoreEnabled = nppGUI._blnFoldingStateRestoreEnabled;
 
 		//-- Get Pointer to Buffer and to _EditView --
 		Buffer *buf = MainFileManager.getBufferByID(bufID);
@@ -9297,9 +9292,6 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 			// 1.) Search throught the session list and if an entry with fileNamePath is available, delete the entry
 			for (size_t i = 0; i < pFileEditViewSession->_mainViewFiles.size(); i++)
 			{
-				// wchar_t strFileName[4 * MAX_PATH];
-				//  lstrcpy(strFileName, pFileEditViewSession->_mainViewFiles[i]._fileName.c_str());
-				// if (wcsicmp((wchar_t *)&strFileName, fileNamePath) == 0) {
 				if (wcsicmp(pFileEditViewSession->_mainViewFiles[i]._fileName.c_str(), fileNamePath) == 0) {
 					posIt = pFileEditViewSession->_mainViewFiles.begin() + i;
 					pFileEditViewSession->_mainViewFiles.erase(posIt);
@@ -9324,15 +9316,6 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 			sfi._isRTL = buf->isRTL();
 
 			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, buf->getDocument());
-			//--FLS: replaced by more efficient way to get markers.
-			// size_t maxLine = _invisibleEditView.execute(SCI_GETLINECOUNT);
-			// for (size_t j = 0; j < maxLine; j++)
-			//{
-			//	if ((_invisibleEditView.execute(SCI_MARKERGET, j) & (1 << MARK_BOOKMARK)) != 0)
-			//	{
-			//		sfi._marks.push_back(j);
-			//	}
-			//}
 			/* --FLS : More efficient way to get markers :
 				MarkerNext(lineStart as Integer, markerMask as Integer) as Integer Plugin Version: 22.0,
 				Function: Search efficiently for lines that include a given set of markers.
@@ -9350,8 +9333,10 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 			}
 
 			//--FLS: xSaveFoldingStateSession:
-			//-- Development of saving Folding State to File Edit View History
 			//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
+			//       Can be disabled due to performance issues.
+			bool blnFoldingStateRestoreEnabled = nppGUI._blnFoldingStateRestoreEnabled;
+
 			if (blnFoldingStateRestoreEnabled) {
 				Buffer *curBuf = _pEditView->getCurrentBuffer();
 				if (buf == curBuf)
@@ -9370,8 +9355,8 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 
 			//--FLS: Restore original saved document to invisibleEditView
 			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, oldDoc);
-		}    //-- if(!buf->isUntitled() )
-	}        //-- if ((NppParameters::getInstance())->getFileEditViewHistoryRestoreEnabled())
+		}    //-- if(!buf->isUntitled() ) --
+	}        //-- if (nppGUI._blnFileEditViewHistoryRestoreEnabled) --
 	return;
 }    //-- addFileToFileEditViewSession() -----------------
 
@@ -9387,13 +9372,9 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 	// NppParameters* pNppParam = NppParameters::getInstance();
 	NppGUI &nppGUI = const_cast<NppGUI &>(nppParam.getNppGUI());
 
-	// std::vector<HeaderLineState> lineStateVector;
 	std::vector<size_t> lineStateVector;
 
 	//--Check, if FileEditViewHistoryRestore is Enabled
-	// if ((NppParameters::getInstance())->getFileEditViewHistoryRestoreEnabled()) {
-	// ToDo FLS: -- delete here, because only for debuggin of saving fileHistory:
-	// if (0) {
 	if (nppGUI._blnFileEditViewHistoryRestoreEnabled) {
 		//--FLS: Get current buffer for comparison with buffer of new loaded document.
 		//-- a.) Buffers are the same, if the newly loaded document is the first document (e.g. new xx).
@@ -9409,7 +9390,6 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 		}
 
 		////--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
-		// bool blnFoldingStateRestoreEnabled = NppParameters::getInstance()->getFoldingStateRestoreEnabled();
 		bool blnFoldingStateRestoreEnabled = nppGUI._blnFoldingStateRestoreEnabled;
 
 		//--FLS: Save current view-Position and folding of current document into document buffer --
@@ -9419,12 +9399,6 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 		//  If the _invisibleEditView could be used for the markers and the folding is applied outside this function,
 		//  then, the CurrentPos and FoldingState needs not to be saved here and restored below.
 		//  Only CurrentPos has to be restored below for the first document. (see case a.) above)
-		//_pEditView->saveCurrentPos();
-		////--FLS: xSaveFoldingStateRestoreDisabled: get foldStateInfo of current doc and put the state into the buffer
-		// if (blnFoldingStateRestoreEnabled) {
-		//	_pEditView->getCurrentFoldStates(lineStateVector);
-		//	_pEditView->getCurrentBuffer()->setHeaderLineState(lineStateVector, _pEditView);
-		// } //--FLS: xSaveFoldingStateRestoreDisabled:
 
 		//--FLS: Restores the file edit-view (line position, window position, marks) of currently loaded file, if in FileEditViewSession list.
 		//--FLS: code stolen from init:..if (nppGUI._rememberLastSession)
@@ -9439,16 +9413,9 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 				//--FLS: Compare restore actions with restore actions in loadSession() in NppIO.cpp - if (lastOpened)-case.!!
 				// showView(currentView());  //--- not needed, because view is not changed!
 				const wchar_t *pLn = lastSession._mainViewFiles[i]._langName.c_str();
-				// int id = getLangFromMenuName(pLn);
 				LangType langTypeToSet = L_TEXT;
 				Buffer *buf = MainFileManager.getBufferByID(buffer);
 
-				/*-- FLS:---- old Code FLS .... ----------
-				if (id != 0 && id != IDM_LANG_USER)
-					langTypeToSet = menuID2LangType(id);
-				if (langTypeToSet == L_EXTERNAL)
-					langTypeToSet = (LangType)(id - IDM_LANG_EXTERNAL + L_EXTERNAL);
-				-- --old Code FLS-- END-- -- -- --*/
 				if (!buf->isLargeFile())
 				{
 					pLn = lastSession._mainViewFiles[i]._langName.c_str();
@@ -9473,29 +9440,17 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 						langTypeToSet = (LangType)(id - IDM_LANG_EXTERNAL + L_EXTERNAL);
 				}
 
-
-
 				//--FLS: xSaveFoldingStateSession: Restore fold levels into document buffer,
 				//       which is applied when the edit view is switched lateron outside this function,
 				//       or before leaving this function (currentBuffer), if the newly loaded document it is the first document in the view!
 				//       FLS: This replaces the original code below (after applying markers) provided for Npp 6.2.3 / 6.3.1
+				//       (case b. above) - case a. is treated below!
 				if (blnFoldingStateRestoreEnabled) {
 					if (lastSession._mainViewFiles[i]._foldStates.size() > 0)
 					{
 						buf->setHeaderLineState(lastSession._mainViewFiles[i]._foldStates, _pEditView);
 					}
 				}
-
-				//--FLS: ToDo: Delete this =========
-				////if (lastSession._mainViewFiles[i]._foldStates.size() > 0)
-				////{
-				////	if (buf == _mainEditView.getCurrentBuffer()) // current document
-				////		// Set floding state in the current doccument
-				////		mainIndex2Update = i;
-				////	else
-				////		// Set fold states in the buffer
-				////		buf->setHeaderLineState(lastSession._mainViewFiles[i]._foldStates, _pEditView);
-				////}
 
 				buf->setPosition(lastSession._mainViewFiles[i], _pEditView);
 				buf->setMapPosition(lastSession._mainViewFiles[i]._mapPos);
@@ -9568,6 +9523,6 @@ void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buf
 			_pEditView->restoreCurrentPosPreStep();
 		}
 
-	}    //-- if ((NppParameters::getInstance())->getFileEditViewHistoryRestoreEnabled())  --
+	}    //-- if (nppGUI._blnFileEditViewHistoryRestoreEnabled)  --
 	return;
 }    //--restoreFileEditView()
