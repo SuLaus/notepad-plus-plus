@@ -9258,3 +9258,271 @@ void Notepad_plus::changeReadOnlyUserModeForAllOpenedTabs(const bool ro)
 		}
 	}
 }
+
+
+
+//--FLS: xFileEditViewHistory: new function addFileToFileEditViewSession()
+void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, const wchar_t *fileNamePath, BufferID bufID, int whichOne)
+{
+	//--FLS: Adds the edit-view parameters of the current file, which is closed by fileClose()
+	//		 into the FileEditViewHistory-Session.
+	//		 (see also code from _lastRecentFileList.add(fileNamePath) and getCurrentOpenedFiles(currentSession) )
+	//--FLS: Use _mainViewFiles for ALL session files, even for the sub-view files, because FileEditViewHistory does not distinguish.
+
+	NppParameters &nppParam = NppParameters::getInstance();
+	// NppParameters* pNppParam = NppParameters::getInstance();
+	NppGUI &nppGUI = const_cast<NppGUI &>(nppParam.getNppGUI());
+
+	//--FLS: ToDo: TCHAR - wchar_t -> std::wstring and string-compare lstrcpy() ->
+	// see stackoverflow.com/questions/11635/… , I'd recommend either the Boost solution or extracting c_str and using wcscasecmp/_wcsicmp
+	vector<sessionFileInfo>::iterator posIt;
+
+	//--Check, if FileEditViewHistoryRestore is Enabled
+	if (nppGUI._blnFileEditViewHistoryRestoreEnabled) {
+
+		//-- Get Pointer to Buffer and to _EditView --
+		Buffer *buf = MainFileManager.getBufferByID(bufID);
+//--FLS: Böser Hack: Neudefinition von _pEditView überlädt die Klassenvariable, damit der nachfolgende Code eine lokale Variable verwendet, ohne den Code zu ändern!
+#pragma warning(disable : 4458)
+		ScintillaEditView *_pEditView = whichOne == MAIN_VIEW ? (&_mainEditView) : (&_subEditView);
+#pragma warning(default : 4458)
+
+		if (!(buf->isUntitled() && buf->docLength() == 0))
+		{
+			// 1.) Search throught the session list and if an entry with fileNamePath is available, delete the entry
+			for (size_t i = 0; i < pFileEditViewSession->_mainViewFiles.size(); i++)
+			{
+				if (wcsicmp(pFileEditViewSession->_mainViewFiles[i]._fileName.c_str(), fileNamePath) == 0) {
+					posIt = pFileEditViewSession->_mainViewFiles.begin() + i;
+					pFileEditViewSession->_mainViewFiles.erase(posIt);
+				}
+			}
+
+			// 2.)  Insert the edit-view parameters at the end of the session list.
+			//		Code stolen from getCurrentOpenedFiles(currentSession) and doClose()
+			_pEditView->saveCurrentPos();                                                 // save position so itll be correct in the session
+			pFileEditViewSession->_activeMainIndex = _mainDocTab.getCurrentTabIndex();    //--FLS: ToDo: Prüfen, ob pFileEditViewSession->_activeMainIndex überhaupt interessiert!!
+			// Use _invisibleEditView to temporarily open documents to retrieve markers
+			Document oldDoc = _invisibleEditView.execute(SCI_GETDOCPOINTER);
+			wstring languageName = getLangFromMenu(buf);
+			const wchar_t *langName = languageName.c_str();
+
+			sessionFileInfo sfi(buf->getFullPathName(), langName, buf->getEncoding(), buf->getUserReadOnly(), buf->isPinned(), buf->isUntitledTabRenamed(), buf->getPosition(_pEditView), buf->getBackupFileName().c_str(), buf->getLastModifiedTimestamp(), buf->getMapPosition());
+
+			sfi._isMonitoring = buf->isMonitoringOn();
+			DocTabView *_docTab = (whichOne == MAIN_VIEW) ? &_mainDocTab : &_subDocTab;
+			int docTabIdx = _docTab->getIndexByBuffer(bufID);
+			sfi._individualTabColour = _docTab->getIndividualTabColourId(static_cast<int>(docTabIdx));
+			sfi._isRTL = buf->isRTL();
+
+			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, buf->getDocument());
+			/* --FLS : More efficient way to get markers :
+				MarkerNext(lineStart as Integer, markerMask as Integer) as Integer Plugin Version: 22.0,
+				Function: Search efficiently for lines that include a given set of markers.
+				Notes: The search starts at line number lineStart and continues forwards to the end of the file (MarkerNext)
+				or backwards to the start of the file (MarkerPrevious).
+				The markerMask argument should have one bit set for each marker you wish to find.
+				Set bit 0 to find marker 0, bit 1 for marker 1 and so on. The message returns the line number of the first line
+				that contains one of the markers in markerMask or-1 if no marker is found.
+			*/
+			/* (1 << MARK_BOOKMARK) is bit for NPP mark */
+			long long nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, 0, (1 << MARK_BOOKMARK)));
+			while (nextMarkedLine != -1) {
+				sfi._marks.push_back(nextMarkedLine);
+				nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, nextMarkedLine + 1, (1 << MARK_BOOKMARK)));
+			}
+
+			//--FLS: xSaveFoldingStateSession:
+			//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
+			//       Can be disabled due to performance issues.
+			bool blnFoldingStateRestoreEnabled = nppGUI._blnFoldingStateRestoreEnabled;
+
+			if (blnFoldingStateRestoreEnabled) {
+				Buffer *curBuf = _pEditView->getCurrentBuffer();
+				if (buf == curBuf)
+				{
+					_pEditView->getCurrentFoldStates(sfi._foldStates);
+				}
+				else
+				{
+					//-- For other documents get folding state from buffer.
+					sfi._foldStates = buf->getHeaderLineState(_pEditView);
+				}
+			}    //--FLS: xSaveFoldingStateRestoreDisabled:
+
+			//-- saving sfi in session --
+			pFileEditViewSession->_mainViewFiles.push_back(sfi);
+
+			//--FLS: Restore original saved document to invisibleEditView
+			_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, oldDoc);
+		}    //-- if(!buf->isUntitled() ) --
+	}        //-- if (nppGUI._blnFileEditViewHistoryRestoreEnabled) --
+	return;
+}    //-- addFileToFileEditViewSession() -----------------
+
+//--FLS: xFileEditViewHistory: new function restoreFileEditView()
+void Notepad_plus::restoreFileEditView(const wchar_t *longFileName, BufferID buffer)
+{
+	//--FLS: FileEditViewHistory: restores edit-view settings (cursor position, marks, etc.) of files
+	//       as they were when the file was closes the last time.
+	//--FLS: Use _mainViewFiles for ALL session files, even for the sub-view files, because FileEditViewHistory does not distinguish.
+	//-- Code partly stolen from loadSession() in NppIO.cpp
+
+	NppParameters &nppParam = NppParameters::getInstance();
+	// NppParameters* pNppParam = NppParameters::getInstance();
+	NppGUI &nppGUI = const_cast<NppGUI &>(nppParam.getNppGUI());
+
+	std::vector<size_t> lineStateVector;
+
+	//--Check, if FileEditViewHistoryRestore is Enabled
+	if (nppGUI._blnFileEditViewHistoryRestoreEnabled) {
+		//--FLS: Get current buffer for comparison with buffer of new loaded document.
+		//-- a.) Buffers are the same, if the newly loaded document is the first document (e.g. new xx).
+		//       The newly loaded file is already the active document (CurrentBuffer)
+		//       Then, the CurrentPos and the Folding has to be applied before leaving this function
+		//       using syncFoldStateWith(lineStateVector); and restoreCurrentPos().
+		//   b.) Buffers are different, if there is already another file loaded in NP++ (or for the second file when reloading a session).
+		//       Then, the active document in CurrentBuffer is the old document and the newly loaded document is in another buffer.
+		int sameBuffer = false;
+		BufferID bufIDPrev = _pEditView->getCurrentBufferID();
+		if (buffer == bufIDPrev) {
+			sameBuffer = true;
+		}
+
+		////--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
+		bool blnFoldingStateRestoreEnabled = nppGUI._blnFoldingStateRestoreEnabled;
+
+		//--FLS: Save current view-Position and folding of current document into document buffer --
+		//  Necessary to avoid drawback when doing SCI_SETDOCPOINTER below, because apparently SCI changes the SCI view-position
+		//  and un-folds all foldings in some cases when applying SCI_SETDOCPOINTER!
+		//  (see ScintillaEditView::activateBuffer()! )
+		//  If the _invisibleEditView could be used for the markers and the folding is applied outside this function,
+		//  then, the CurrentPos and FoldingState needs not to be saved here and restored below.
+		//  Only CurrentPos has to be restored below for the first document. (see case a.) above)
+
+		//--FLS: Restores the file edit-view (line position, window position, marks) of currently loaded file, if in FileEditViewSession list.
+		//--FLS: code stolen from init:..if (nppGUI._rememberLastSession)
+		Session lastSession = *(NppParameters::getInstance()).getPtrFileEditViewSession();    // _lastFileEditViewSession
+		for (size_t i = 0; i < lastSession._mainViewFiles.size(); i++)
+		{
+			const wchar_t *pFn = lastSession._mainViewFiles[i]._fileName.c_str();
+			//-- searches through the list of FileEditViewSession for the recent FileName and restores the edit-view if found.
+			int res = wcsicmp(longFileName, pFn);
+			if (res == 0)
+			{
+				//--FLS: Compare restore actions with restore actions in loadSession() in NppIO.cpp - if (lastOpened)-case.!!
+				// showView(currentView());  //--- not needed, because view is not changed!
+				const wchar_t *pLn = lastSession._mainViewFiles[i]._langName.c_str();
+				LangType langTypeToSet = L_TEXT;
+				Buffer *buf = MainFileManager.getBufferByID(buffer);
+
+				if (!buf->isLargeFile())
+				{
+					pLn = lastSession._mainViewFiles[i]._langName.c_str();
+
+					int id = getLangFromMenuName(pLn);
+
+					if (!id)    // it could be due to the hidden language from the sub-menu "Languages"
+					{
+						for (size_t k = 0; k < nppGUI._excludedLangList.size(); ++k)    // try to find it in exclude lang list
+						{
+							if (nppGUI._excludedLangList[k]._langName == pLn)
+							{
+								langTypeToSet = nppGUI._excludedLangList[k]._langType;
+								break;
+							}
+						}
+					}
+					else if (id != IDM_LANG_USER)
+						langTypeToSet = menuID2LangType(id);
+
+					if (langTypeToSet == L_EXTERNAL)
+						langTypeToSet = (LangType)(id - IDM_LANG_EXTERNAL + L_EXTERNAL);
+				}
+
+				//--FLS: xSaveFoldingStateSession: Restore fold levels into document buffer,
+				//       which is applied when the edit view is switched lateron outside this function,
+				//       or before leaving this function (currentBuffer), if the newly loaded document it is the first document in the view!
+				//       FLS: This replaces the original code below (after applying markers) provided for Npp 6.2.3 / 6.3.1
+				//       (case b. above) - case a. is treated below!
+				if (blnFoldingStateRestoreEnabled) {
+					if (lastSession._mainViewFiles[i]._foldStates.size() > 0)
+					{
+						buf->setHeaderLineState(lastSession._mainViewFiles[i]._foldStates, _pEditView);
+					}
+				}
+
+				buf->setPosition(lastSession._mainViewFiles[i], _pEditView);
+				buf->setMapPosition(lastSession._mainViewFiles[i]._mapPos);
+				buf->setLangType(langTypeToSet, pLn);
+				if (lastSession._mainViewFiles[i]._encoding != -1)
+					buf->setEncoding(lastSession._mainViewFiles[i]._encoding);
+
+				buf->setUserReadOnly(lastSession._mainViewFiles[i]._isUserReadOnly);
+				buf->setPinned(lastSession._mainViewFiles[i]._isPinned);
+
+				buf->setUntitledTabRenamedStatus(lastSession._mainViewFiles[i]._isUntitledTabRenamed);
+
+				buf->setRTL(lastSession._mainViewFiles[i]._isRTL);
+				if (i == 0 && lastSession._activeMainIndex == 0)
+					_mainEditView.changeTextDirection(buf->isRTL());
+
+				_mainDocTab.setIndividualTabColour(buffer, lastSession._mainViewFiles[i]._individualTabColour);
+
+
+				// Force in the document so we can add the markers
+				// Dont use default methods because of performance
+				//--FLS: Use _invisibleEditView instead of _pEditView for markers, because otherwise SCI_SETDOCPOINTER un-folds all foldings in the current active document!
+				Document prevDoc = _invisibleEditView.execute(SCI_GETDOCPOINTER);
+				_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, buf->getDocument());
+				for (size_t j = 0; j < lastSession._mainViewFiles[i]._marks.size(); j++)
+				{
+					_invisibleEditView.execute(SCI_MARKERADD, lastSession._mainViewFiles[i]._marks[j], MARK_BOOKMARK);
+				}
+				//--FLS: xSaveFoldingStateSession: restore fold levels
+				//- Bookmarks, selection marks and style marks are valid for a document in SCI (equal in all views of the same document in SCI)
+				//- But "folding" is a property of a view and not a document (different for the same document in two views)!
+				//  So, if changing documents with SCI_SETDOCPOINTER, SCI un-folds all foldings!!
+				//- Therefore, the lexer needs first to do its work! But the lexer is not set at this stage (only for the first document replacing "new x" dummy document).
+				//- Set document language type and request lexter to style the document.
+				//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions. Will be disabled due to performance issues.
+				//////if (blnFoldingStateRestoreEnabled) {
+				//////	_pEditView->defineDocType(buf->getLangType());
+				//////	_pEditView->execute(SCI_COLOURISE, 0, -1); // request the lexer to style the document.
+
+				//////	for (size_t j = 0 ; j < lastSession._mainViewFiles[i]._foldStates.size() ; j++)
+				//////	{
+				//////		//-- Pre-Condition is that after file is opened NO lines are folded,
+				//////		//   but the Lexer has already styled the document so that the Folding-Header lines exist!!
+				//////		_pEditView->execute(SCI_TOGGLEFOLD, lastSession._mainViewFiles[i]._foldStates[j]);
+				//////	}
+
+				//////	//-- Write folding state info also into current buffer for activation later in current view.
+				//////	// get foldStateInfo of current doc
+				//////	std::vector<HeaderLineState> lineStateVectorTemp;
+				//////	_pEditView->getCurrentFoldStates(lineStateVectorTemp);
+				//////	// put the state into the future ex buffer
+				//////	buf->setHeaderLineState(lineStateVectorTemp, _pEditView);
+				//////} //--FLS: xSaveFoldingStateRestoreDisabled:
+
+				//-- switch back the SCI-Buffer to the buffer of the current edit view.
+				_invisibleEditView.execute(SCI_SETDOCPOINTER, 0, prevDoc);
+			}    //-- if (res==0), when a File to restore EditView was found --
+		}        //-- for-loop over _mainViewFiles[]
+
+
+		//--FLS: Restore saved view-Position and folding of original document from document buffer,
+		//       or at least for the first document in NP++ (case a.) above) --
+		//--FLS: xSaveFoldingStateRestoreDisabled: Parameter to enable/disable Folding State Restore for sessions.
+		if (sameBuffer) {
+			if (blnFoldingStateRestoreEnabled) {
+				lineStateVector = _pEditView->getCurrentBuffer()->getHeaderLineState(_pEditView);
+				_pEditView->syncFoldStateWith(lineStateVector);
+			}    //--FLS: xSaveFoldingStateRestoreDisabled:
+			//--FLS: restoreCurrentPos() (in 8.x exchanged by restoreCurrentPosPreStep()) has to be performed AFTER restoring of fold state(syncFoldStateWith())!
+			_pEditView->restoreCurrentPosPreStep();
+		}
+
+	}    //-- if (nppGUI._blnFileEditViewHistoryRestoreEnabled)  --
+	return;
+}    //--restoreFileEditView()

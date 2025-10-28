@@ -182,7 +182,9 @@ bool resolveLinkFile(std::wstring& linkFilePath)
 	return isResolved;
 }
 
-BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp)
+//--FLS: xFileEditViewHistory: Additional parameter "blnRestoreFileEditView" at doOpen() to avoid reundancy of session-loading with RestoreFileEditView loading.
+//       For doOpen() calls within  loadSession() the blnRestoreFileEditView is set to false.
+BufferID Notepad_plus::doOpen(const wstring &fileName, bool isRecursive, bool isReadOnly, int encoding, const wchar_t *backupFileName, FILETIME fileNameTimestamp, bool blnRestoreFileEditView)
 {
 	const rsize_t longFileNameBufferSize = MAX_PATH;
 	if (fileName.size() >= longFileNameBufferSize - 1)
@@ -266,7 +268,12 @@ BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool is
 	{
 		wcscpy_s(longFileName, targetFileName.c_str());
 	}
-    _lastRecentFileList.remove(longFileName);
+	//--FLS: xFileEditViewHistory BugFix: Random crash when opening recent file list files several times
+	//       When a file is opened/closed several times using the recent file list in the files menu, then, NPP crashes occasionally after 3 to 7 cycles. 
+	//       The bug is in NppIO.cpp doOpen() function because there the function _lastRecentFileList.remove() deletes the buffer (in the recent file list) where *targetFileName pointer points at.
+	//       NPP then crashes randomly at generic_string gs_fileName = fileName; below.
+	//       Therefore, _lastRecentFileList.remove(); statement is moved down, where *targetFileName is no more used.
+	//_lastRecentFileList.remove(longFileName);
 
 
 	// "fileName" could be:
@@ -276,6 +283,11 @@ BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool is
 
 	// Search case 1 & 2 firstly
 	BufferID foundBufID = MainFileManager.getBufferFromName(targetFileName.c_str());
+
+
+	//--FLS: xFileEditViewHistory BugFix: Move _lastRecentFileList.remove(); statement down here, where *targetFileName is no more used.
+	_lastRecentFileList.remove(longFileName);
+	
 
 	// if case 1 & 2 not found, search case 3
 	if (foundBufID == BUFFER_INVALID)
@@ -465,6 +477,9 @@ BufferID Notepad_plus::doOpen(const wstring& fileName, bool isRecursive, bool is
                 ::SendMessage(_pPublicInterface->getHSelf(), WM_SIZE, 0, 0);
             }
         }
+		//--FLS: xFileEditViewHistory: File opened and now reset edit-view if file is in FileEditViewHistory and FileEditViewHistory is enabled!
+		if (blnRestoreFileEditView)
+			restoreFileEditView(longFileName, buffer);
         PathRemoveFileSpec(longFileName);
         _linkTriggered = true;
         _isFileOpening = false;
@@ -865,6 +880,11 @@ void Notepad_plus::doClose(BufferID id, int whichOne, bool doDeleteBackup)
 
 		if (fileExists)
 			fileFullPath = fn;
+
+		//--FLS: xFileEditViewHistory: save current edit-view into list of FileEditViewHistory (if enabled)
+		//--FLS: ToDo: Only save EditView, if there is not another open EditView in the other view.
+		Session *lastFileEditViewSession = (NppParameters::getInstance()).getPtrFileEditViewSession();    // returns pointer to _lastFileEditViewSession
+		addFileToFileEditViewSession(lastFileEditViewSession, buf->getFullPathName(), id, whichOne);
 
 #ifndef	_WIN64
 		// We enable Wow64 system, if it was disabled
@@ -2500,13 +2520,25 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, const wch
 		if (doesFileExist(pFn))
 		{
 			if (isSnapshotMode && !session._mainViewFiles[i]._backupFilePath.empty())
-				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
+				//--FLS: ToDo after Merge: LS Code und Aenderungen von DonHo noch im Debugging Mergen --
+				//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy.
+				// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
+				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, false);
 			else
-				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding);
+				//--FLS: ToDo after Merge: LS Code und Aenderungen von DonHo noch im Debugging Mergen --
+				//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy.
+				// 6.5   lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding, true);
+				// 7.6.3 lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding);
+				// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding);
+				lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, NULL, {}, false);
 		}
 		else if (isSnapshotMode && doesFileExist(session._mainViewFiles[i]._backupFilePath.c_str()))
 		{
-			lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
+			//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy.
+			// 6.5   lastOpened = doOpen(pFn, false, session._mainViewFiles[i]._encoding, true);
+			// 7.6.3 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
+			// 8.5.5 lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp);
+			lastOpened = doOpen(pFn, false, false, session._mainViewFiles[i]._encoding, session._mainViewFiles[i]._backupFilePath.c_str(), session._mainViewFiles[i]._originalFileLastModifTimestamp, false);
 		}
 		else
 		{
@@ -2650,9 +2682,13 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, const wch
 			else
 			{
 				if (isSnapshotMode && !session._subViewFiles[k]._backupFilePath.empty())
-					lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding, session._subViewFiles[k]._backupFilePath.c_str(), session._subViewFiles[k]._originalFileLastModifTimestamp);
+					//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy. 
+					// 8.5.5 lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding, session._subViewFiles[k]._backupFilePath.c_str(), session._subViewFiles[k]._originalFileLastModifTimestamp);
+					lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding, session._subViewFiles[k]._backupFilePath.c_str(), session._subViewFiles[k]._originalFileLastModifTimestamp, true);
 				else
-					lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding);
+					//--FLS: xFileEditViewHistory: Calling doOpen(..,noRestoreFileEditView=true), in order to suppress RestoreFileEditView() when a session is loading due to redundancy. 
+					// 8.5.5 lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding);
+					lastOpened = doOpen(pFn, false, false, session._subViewFiles[k]._encoding, NULL, {}, true);
 			}
 		}
 		else

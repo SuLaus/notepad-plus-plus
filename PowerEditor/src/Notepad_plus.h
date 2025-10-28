@@ -169,7 +169,11 @@ public:
 
 	// The following functions apply to a single buffer and don't need to worry about views, with the exception of doClose,
 	// since closing one view doesn't have to mean the document is gone
-	BufferID doOpen(const std::wstring& fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {});
+
+	//--FLS: xFileEditViewHistory: Additional parameter "blnRestoreFileEditView" at doOpen() to avoid reundancy of session-loading with RestoreFileEditView loading.
+	//       For doOpen() calls within  loadSession() the blnRestoreFileEditView is set to false.
+	BufferID doOpen(const std::wstring &fileName, bool isRecursive = false, bool isReadOnly = false, int encoding = -1, const wchar_t *backupFileName = NULL, FILETIME fileNameTimestamp = {}, bool blnRestoreFileEditView = true);
+
 	bool doReload(BufferID id, bool alert = true);
 	bool doSave(BufferID, const wchar_t * filename, bool isSaveCopy = false);
 	void doClose(BufferID, int whichOne, bool doDeleteBackup = false);
@@ -217,6 +221,11 @@ public:
 	void saveFindHistory();
 
 	void getCurrentOpenedFiles(Session& session, bool includeUntitledDoc = false);
+	
+	//--FLS: xFileEditViewHistory: new function addFileToFileEditViewSession()
+	void addFileToFileEditViewSession(Session * pSession, const wchar_t *fileNamePath, BufferID id, int whichOne);
+	//--FLS: xFileEditViewHistory: new function declaration restoreFileEditView()
+	void restoreFileEditView(const wchar_t *longFileName, BufferID buffer);	
 
 	bool fileLoadSession(const wchar_t* fn = nullptr);
 	const wchar_t * fileSaveSession(size_t nbFile, wchar_t ** fileNames, const wchar_t *sessionFile2save, bool includeFileBrowser = false);
