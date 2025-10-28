@@ -382,6 +382,12 @@ IDR_ASCIIPANEL_ICO_DM           ICON        "icons/dark/panels/tabbar/asciiPanel
 IDR_FIND_RESULT_ICO2            ICON        "icons/light/panels/tabbar/findResult.ico"
 IDR_FIND_RESULT_ICO_DM          ICON        "icons/dark/panels/tabbar/findResult.ico"
 
+//--FLS: IconAdd: For Block-Comment/UnComment
+IDI_COMMENT_ICON                ICON         "icons/comment_on.ico"
+IDI_UN_COMMENT_ICON             ICON         "icons/un_comment_on.ico"
+IDR_COMMENT                     BITMAP       "icons/comment.bmp"
+IDR_UN_COMMENT                  BITMAP       "icons/un_comment.bmp"
+
 
 IDI_PROJECT_WORKSPACE           ICON        "icons/standard/panels/treeview/project_work_space.ico"
 IDI_PROJECT_WORKSPACEDIRTY      ICON        "icons/standard/panels/treeview/project_work_space_dirty.ico"

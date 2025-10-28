@@ -575,6 +575,12 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE /*hPrevInstance
 
 	bool isParamePresent;
 	bool isMultiInst = isInList(FLAG_MULTI_INSTANCE, params);
+	//--FLS: xMultiInstDevelopment: Development for always set MultiInst=true
+	//       ToDo: --- remove for release ---
+#ifdef DEBUG
+	isMultiInst = true;
+#endif
+
 	bool doFunctionListExport = isInList(FLAG_FUNCLSTEXPORT, params);
 	bool doPrintAndQuit = isInList(FLAG_PRINTANDQUIT, params);
 

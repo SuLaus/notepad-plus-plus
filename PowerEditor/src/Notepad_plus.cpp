@@ -124,7 +124,17 @@ ToolBarButtonUnit toolBarIcons[] = {
     {IDM_MACRO_STOPRECORDINGMACRO,     IDI_STOPRECORD_ICON,        IDI_STOPRECORD_DISABLE_ICON,   IDI_STOPRECORD_ICON2,       IDI_STOPRECORD_DISABLE_ICON2,  IDI_STOPRECORD_ICON_DM,        IDI_STOPRECORD_DISABLE_ICON_DM,   IDI_STOPRECORD_ICON_DM2,       IDI_STOPRECORD_DISABLE_ICON_DM2,  IDR_STOPRECORD},
     {IDM_MACRO_PLAYBACKRECORDEDMACRO,  IDI_PLAYRECORD_ICON,        IDI_PLAYRECORD_DISABLE_ICON,   IDI_PLAYRECORD_ICON2,       IDI_PLAYRECORD_DISABLE_ICON2,  IDI_PLAYRECORD_ICON_DM,        IDI_PLAYRECORD_DISABLE_ICON_DM,   IDI_PLAYRECORD_ICON_DM2,       IDI_PLAYRECORD_DISABLE_ICON_DM2,  IDR_PLAYRECORD},
     {IDM_MACRO_RUNMULTIMACRODLG,       IDI_MMPLAY_ICON,            IDI_MMPLAY_DIS_ICON,           IDI_MMPLAY_ICON2,           IDI_MMPLAY_DIS_ICON2,          IDI_MMPLAY_ICON_DM,            IDI_MMPLAY_DIS_ICON_DM,           IDI_MMPLAY_ICON_DM2,           IDI_MMPLAY_DIS_ICON_DM2,          IDR_M_PLAYRECORD},
-    {IDM_MACRO_SAVECURRENTMACRO,       IDI_SAVERECORD_ICON,        IDI_SAVERECORD_DISABLE_ICON,   IDI_SAVERECORD_ICON2,       IDI_SAVERECORD_DISABLE_ICON2,  IDI_SAVERECORD_ICON_DM,        IDI_SAVERECORD_DISABLE_ICON_DM,   IDI_SAVERECORD_ICON_DM2,       IDI_SAVERECORD_DISABLE_ICON_DM2,  IDR_SAVERECORD}
+    {IDM_MACRO_SAVECURRENTMACRO,       IDI_SAVERECORD_ICON,        IDI_SAVERECORD_DISABLE_ICON,   IDI_SAVERECORD_ICON2,       IDI_SAVERECORD_DISABLE_ICON2,  IDI_SAVERECORD_ICON_DM,        IDI_SAVERECORD_DISABLE_ICON_DM,   IDI_SAVERECORD_ICON_DM2,       IDI_SAVERECORD_DISABLE_ICON_DM2,  IDR_SAVERECORD},
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+    {0,                                IDI_SEPARATOR_ICON,         IDI_SEPARATOR_ICON,            IDI_SEPARATOR_ICON,         IDI_SEPARATOR_ICON,            IDI_SEPARATOR_ICON,            IDI_SEPARATOR_ICON,               IDI_SEPARATOR_ICON,            IDI_SEPARATOR_ICON,            IDI_SEPARATOR_ICON},
+    //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+    //--FLS: IconAdd: Comment/Un-Comment
+    {IDM_EDIT_BLOCK_COMMENT_SET,       IDI_COMMENT_ICON,           IDI_COMMENT_ICON,              IDI_COMMENT_ICON,           IDI_COMMENT_ICON,              IDI_COMMENT_ICON,              IDI_COMMENT_ICON,                 IDI_COMMENT_ICON,              IDI_COMMENT_ICON,                 IDR_COMMENT},
+    {IDM_EDIT_BLOCK_UNCOMMENT,         IDI_UN_COMMENT_ICON,        IDI_UN_COMMENT_ICON,           IDI_UN_COMMENT_ICON,        IDI_UN_COMMENT_ICON,           IDI_UN_COMMENT_ICON,           IDI_UN_COMMENT_ICON,              IDI_UN_COMMENT_ICON,           IDI_UN_COMMENT_ICON, IDR_UN_COMMENT}
+    //-------------------------------------------------------------------------------------//
+    //--FLS: No separator at the end, because dynamic Buttons add a seperator by theirself.
+    //-------------------------------------------------------------------------------------//
 };
 
 
@@ -5298,6 +5308,20 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
 	const wchar_t *commentLineSymbol;
 	wstring symbol;
 
+	//--FLS: --- Naming relations of Comment-Types ----
+	//  By the way, the terminology of Wikipedia is a little bit different than in Notepad++:
+	//  Notepad++            Wikipedia
+	//    block comment = line comment(e.g. //    for C language)
+	//    stream comment = block comment(e.g. /* */ for C language)
+	//  But even worse, the Npp user interface is different to the called function name:
+	//		Toggle Single Line			Ctrl-Q						case IDM_EDIT_BLOCK_COMMENT: 		doBlockComment(cm_toggle);
+	//		Single Line Comment			Ctrl-K						case IDM_EDIT_BLOCK_COMMENT_SET:	doBlockComment(cm_comment);
+	//		Single Line Uncomment		Shift-Ctrl-K				case IDM_EDIT_BLOCK_UNCOMMENT:		doBlockComment(cm_uncomment);
+	//		Block Comment				Shift-Ctrl-Q				case IDM_EDIT_STREAM_COMMENT:		doStreamComment();
+	//		Block Uncomment				- R-Mouse -					case IDM_EDIT_STREAM_UNCOMMENT:		undoStreamComment();
+	//		FLS - Icon - Comment									case IDM_EDIT_BLOCK_COMMENT_SET:	doBlockComment(cm_comment);
+	//		FLS - Icon - Uncomment									case IDM_EDIT_BLOCK_UNCOMMENT:		doBlockComment(cm_uncomment);
+
 	//Single Line Comment/Uncomment/Toggle can have two modes:
 	// * a NORMAL MODE which uses a commentLineSymbol to comment/uncomment code per line, and
 	// * an ADVANCED MODE which uses commentStart and commentEnd symbols to comment/uncomment code per line.
@@ -5331,7 +5355,7 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
 
 	if ((!commentLineSymbol) || (!commentLineSymbol[0]) || (commentLineSymbol == NULL))
 	{
-	// BlockToStreamComment: If there is no block-comment symbol, try the stream comment:
+	// BlockToStreamComment: If there is no block- (single-line-) comment symbol, try the stream comment:
 		if (!(!commentStart || !commentStart[0] || commentStart == NULL || !commentEnd || !commentEnd[0] || commentEnd == NULL))
 		{
 			if (currCommentMode == cm_comment)
@@ -5352,12 +5376,23 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
 			{
 				//Do an advanced "Toggle Single Line Comment" by using stream-comment symbols (start/end) per line in this case.
 				isSingleLineAdvancedMode = true;
+
+				//--FLS: xStreamCommentToggle: Handle cm_toggle for StreamComment! (see Bug #4301 for HTML)
+				//       If the cursor (or mark) is within a stream comment, then undoStreamComment() will return successfully. 
+				//       Otherwise, the cursor was not within a stream comment and so the line or selection has to be commented.
+				//  Attention: The "isSingleLineAdvancedMode" case only handles stream-comment for each full line,
+				//             thus will not remove any stream-comments within a line.
+				bool retCode = undoStreamComment(false);
+				if (retCode)
+					return retCode;
+				else
+					return doStreamComment();
 			}
 			else
 				return false;
 		}
 		else
-			return false;
+			return false;	//--FLS: Neither a LineComment symbol nor a block-/stream comment symbol available.
 	}
 
 	//For Single Line NORMAL MODE
@@ -5402,8 +5437,22 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
 	intptr_t selEndLine = _pEditView->execute(SCI_LINEFROMPOSITION, selectionEnd);
 	intptr_t lines = selEndLine - selStartLine;
     // "caret return" is part of the last selected line
-    if ((lines > 0) && (selectionEnd == static_cast<size_t>(_pEditView->execute(SCI_POSITIONFROMLINE, selEndLine))))
+	//--FLS:  xBlockToStreamComment: Correct selectionEnd to end of previous line if selection included EOL-character(s) and ends at beginning of next line.
+	if ((lines > 0) && (selectionEnd == static_cast<size_t>(_pEditView->execute(SCI_POSITIONFROMLINE, selEndLine)))) {
 		selEndLine--;
+		selectionEnd = _pEditView->execute(SCI_GETLINEENDPOSITION, selEndLine);
+	}
+
+	//--FLS: xBlockToStreamComment: If there is a StreamComment available and the selection does not cover FULL lines, then use doStreamComment();
+	size_t selStartLineStart = _pEditView->execute(SCI_POSITIONFROMLINE, selStartLine);
+	size_t selEndLineEnd = _pEditView->execute(SCI_GETLINEENDPOSITION, selEndLine);
+	if (currCommentMode == cm_comment && selectionStart != selectionEnd && (selectionStart != selStartLineStart || selectionEnd != selEndLineEnd)) {
+		if (!(!commentStart || !commentStart[0] || commentStart == NULL || !commentEnd || !commentEnd[0] || commentEnd == NULL)) {
+			// StreamComment in language available and no full lines are selected, so use StreamComment instead of single line comment.
+			return doStreamComment();
+		}
+	}
+
 	// count lines which were un-commented to decide if undoStreamComment() shall be called.
 	int nUncomments = 0;
 	//Some Lexers need line-comments at the beginning of a line.
@@ -5580,13 +5629,13 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
     }
     _pEditView->execute(SCI_ENDUNDOACTION);
 
-	// undoStreamComment: If there were no block-comments to un-comment try uncommenting of stream-comment.
+	// undoStreamComment: If there were no block-(single line-)comments to un-comment try uncommenting of stream-comment.
 	if ((currCommentMode == cm_uncomment) && (nUncomments == 0))
 	{
 		return undoStreamComment(false);
 	}
-    return true;
-}
+	return true;
+}  //-- doBlockComment()
 
 bool Notepad_plus::doStreamComment()
 {
@@ -8795,7 +8844,8 @@ bool Notepad_plus::undoStreamComment(bool tryBlockComment)
 
 		//-- Directly use Scintilla-Functions
 		//   rather than _findReplaceDlg.processFindNext()which does not return the find-position and is not quiet!
-		flags = SCFIND_WORDSTART;
+		flags = 0;	//SCFIND_WORDSTART = FLS: A match only occurs if the character before is not a word character.
+					//--FLS: ?? It is not clear, why SCFIND_WORDSTART was used in the initial version. ??
 		_pEditView->execute(SCI_SETSEARCHFLAGS, flags);
 		//-- Find all start- and end-comments before and after the selectionStart position.
 		//-- When searching upwards the start-position for searching must be moved one after the current position
@@ -8921,7 +8971,7 @@ bool Notepad_plus::undoStreamComment(bool tryBlockComment)
 			_pEditView->execute(SCI_SETSEL, selectionStart + selectionStartMove, selectionEnd + selectionEndMove);
 		}
 	} while (1); //do as long as stream-comments are within selection
-}
+} //----- undoStreamComment() -------------------------------
 
 void Notepad_plus::monitoringStartOrStopAndUpdateUI(Buffer* pBuf, bool isStarting)
 {

@@ -271,6 +271,10 @@
 #define IDI_READONLYSYS_DM_ICON  514
 #define IDI_READONLYSYS_ALT_ICON 515
 
+//--FLS: IconAdd: Comment-Icon
+#define IDI_COMMENT_ICON		560
+#define IDI_UN_COMMENT_ICON		561
+
 #define IDI_PROJECT_WORKSPACE          601
 #define IDI_PROJECT_WORKSPACEDIRTY     602
 #define IDI_PROJECT_PROJECT            603
@@ -427,6 +431,10 @@
 #define IDR_PINTAB_HOVERONTAB_DM    1579
 #define IDR_PINTAB_PINNED_DM        1580
 #define IDR_PINTAB_PINNEDHOVERIN_DM 1581
+
+//--FLS: IconAdd: Comment-Bitmap
+#define IDR_COMMENT                 1590
+#define IDR_UN_COMMENT              1591
 
 #define ID_MACRO                           20000
 //                                     O     .
