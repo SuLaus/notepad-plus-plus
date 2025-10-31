@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <NotepadPlus>
-    <InternalCommands />
-
-    <!--
+	<!--
     You can organize you Macro menu & Run menu by adding the attribute 'FolderName="My sub-menu name"' to any Macro or Command node.
     This will place the corresponding node within a "My sub-menu name" sub-menu in the appropriate menu. Please consider the following examples:
     -->
-    <Macros>
-        <!--
+	<InternalCommands/>
+	<Macros>
+		<!--
         <Macro name="aa" Ctrl="no" Alt="no" Shift="no" Key="0">
             <Action type="1" message="2170" wParam="0" lParam="0" sParam="A" />
             <Action type="1" message="2170" wParam="0" lParam="0" sParam="A" />
@@ -29,21 +28,30 @@
             <Action type="2" message="0" wParam="41006" lParam="0" sParam="" />
         </Macro>
         -->
-        <Macro name="Trim Trailing Space and Save" Ctrl="no" Alt="yes" Shift="yes" Key="83">
-            <Action type="2" message="0" wParam="42024" lParam="0" sParam="" />
-            <Action type="2" message="0" wParam="41006" lParam="0" sParam="" />
-        </Macro>
-    </Macros>
-    <UserDefinedCommands>
-        <!--
+		<Macro Alt="yes" Ctrl="no" Key="83" name="Trim Trailing Space and Save" Shift="yes">
+			<Action lParam="0" message="0" sParam="" type="2" wParam="41006"/>
+			<Action lParam="0" message="0" sParam="" type="2" wParam="42024"/>
+		</Macro>
+	</Macros>
+	<PluginCommands>
+		<PluginCommand Alt="no" Ctrl="yes" internalID="7" Key="190" moduleName="PythonScript.dll" Shift="no"/>
+		<PluginCommand Alt="no" Ctrl="yes" internalID="8" Key="190" moduleName="PythonScript.dll" Shift="yes"/>
+	</PluginCommands>
+	<ScintillaKeys/>
+	<UserDefinedCommands>
+		<!--
         <Command name="Get PHP help" Ctrl="no" Alt="yes" Shift="no" Key="112" FolderName="Help on Internet">https://www.php.net/$(CURRENT_WORD)</Command>
         <Command name="Wikipedia Search" Ctrl="no" Alt="yes" Shift="no" Key="114" FolderName="Help on Internet">https://en.wikipedia.org/wiki/Special:Search?search=$(CURRENT_WORD)</Command>
         <Command name="Open selected file path in new instance" Ctrl="no" Alt="yes" Shift="no" Key="117">$(NPP_FULL_FILE_PATH) $(CURRENT_WORD) -nosession -multiInst</Command>
         -->
-        <Command name="Get PHP help" Ctrl="no" Alt="yes" Shift="no" Key="112">https://www.php.net/$(CURRENT_WORD)</Command>
-        <Command name="Wikipedia Search" Ctrl="no" Alt="yes" Shift="no" Key="114">https://en.wikipedia.org/wiki/Special:Search?search=$(CURRENT_WORD)</Command>
-        <Command name="Open selected file path in new instance" Ctrl="no" Alt="yes" Shift="no" Key="117">$(NPP_FULL_FILE_PATH) $(CURRENT_WORD) -nosession -multiInst</Command>
-    </UserDefinedCommands>
-    <PluginCommands />
-    <ScintillaKeys />
+		<Command Alt="yes" Ctrl="no" Key="112" name="Get PHP help" Shift="no">
+			https://www.php.net/$(CURRENT_WORD)
+		</Command>
+		<Command Alt="yes" Ctrl="no" Key="114" name="Wikipedia Search" Shift="no">
+			https://en.wikipedia.org/wiki/Special:Search?search=$(CURRENT_WORD)
+		</Command>
+		<Command Alt="yes" Ctrl="no" Key="117" name="Open selected file path in new instance" Shift="no">
+			$(NPP_FULL_FILE_PATH) $(CURRENT_WORD) -nosession -multiInst
+		</Command>
+	</UserDefinedCommands>
 </NotepadPlus>
