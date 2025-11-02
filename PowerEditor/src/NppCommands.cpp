@@ -265,6 +265,8 @@ void Notepad_plus::command(int id)
 			}
 			break;
 
+	  //--FLS: CtrlTabF4: IDM_FILE_CLOSE_2 for Ctrl_VK_F4 inserted.
+		case IDM_FILE_CLOSE_2:
 		case IDM_FILE_CLOSE:
 			if (fileClose())
                 checkDocState();
