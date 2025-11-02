@@ -1,0 +1,7 @@
+<doLocalConf.xml>
+<!-- doLocalConf.xml
+    If this file (doLocalConf.xml) is available in the Npp Start-Directory,
+    the Configuration is taken from the config.xml file in the Npp Start-Directory 
+    and not from the config.xml file in the User App Data (%APPDATA%\Notepad++) -Directory. 
+-->
+</doLocalConf.xml>
