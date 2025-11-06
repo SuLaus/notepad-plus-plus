@@ -9326,10 +9326,11 @@ void Notepad_plus::addFileToFileEditViewSession(Session *pFileEditViewSession, c
 				that contains one of the markers in markerMask or-1 if no marker is found.
 			*/
 			/* (1 << MARK_BOOKMARK) is bit for NPP mark */
-			long long nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, 0, (1 << MARK_BOOKMARK)));
-			while (nextMarkedLine != -1) {
+			auto nextMarkedLine = _invisibleEditView.execute(SCI_MARKERNEXT, 0, (1 << MARK_BOOKMARK));
+			while (nextMarkedLine != -1)
+			{
 				sfi._marks.push_back(nextMarkedLine);
-				nextMarkedLine = static_cast<long long>(_invisibleEditView.execute(SCI_MARKERNEXT, nextMarkedLine + 1, (1 << MARK_BOOKMARK)));
+				nextMarkedLine = _invisibleEditView.execute(SCI_MARKERNEXT, nextMarkedLine + 1, (1 << MARK_BOOKMARK));
 			}
 
 			//--FLS: xSaveFoldingStateSession:
