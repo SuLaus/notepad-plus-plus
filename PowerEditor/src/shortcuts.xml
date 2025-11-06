@@ -33,7 +33,6 @@
 			<Action lParam="0" message="0" sParam="" type="2" wParam="42024"/>
 		</Macro>
 	</Macros>
-	<ScintillaKeys/>
 	<UserDefinedCommands>
 		<!--
         <Command name="Get PHP help" Ctrl="no" Alt="yes" Shift="no" Key="112" FolderName="Help on Internet">https://www.php.net/$(CURRENT_WORD)</Command>
@@ -54,4 +53,5 @@
 		<PluginCommand Alt="no" Ctrl="yes" internalID="7" Key="190" moduleName="PythonScript.dll" Shift="no"/>
 		<PluginCommand Alt="no" Ctrl="yes" internalID="8" Key="190" moduleName="PythonScript.dll" Shift="yes"/>
 	</PluginCommands>
+	<ScintillaKeys/>
 </NotepadPlus>
