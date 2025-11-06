@@ -33,10 +33,6 @@
 			<Action lParam="0" message="0" sParam="" type="2" wParam="42024"/>
 		</Macro>
 	</Macros>
-	<PluginCommands>
-		<PluginCommand Alt="no" Ctrl="yes" internalID="7" Key="190" moduleName="PythonScript.dll" Shift="no"/>
-		<PluginCommand Alt="no" Ctrl="yes" internalID="8" Key="190" moduleName="PythonScript.dll" Shift="yes"/>
-	</PluginCommands>
 	<ScintillaKeys/>
 	<UserDefinedCommands>
 		<!--
@@ -54,4 +50,8 @@
 			$(NPP_FULL_FILE_PATH) $(CURRENT_WORD) -nosession -multiInst
 		</Command>
 	</UserDefinedCommands>
+	<PluginCommands>
+		<PluginCommand Alt="no" Ctrl="yes" internalID="7" Key="190" moduleName="PythonScript.dll" Shift="no"/>
+		<PluginCommand Alt="no" Ctrl="yes" internalID="8" Key="190" moduleName="PythonScript.dll" Shift="yes"/>
+	</PluginCommands>
 </NotepadPlus>
